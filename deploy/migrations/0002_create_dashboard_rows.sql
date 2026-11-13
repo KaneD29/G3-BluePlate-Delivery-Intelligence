@@ -1,0 +1,1 @@
+CREATE TABLE dashboard_rows (`dataset` VARCHAR(24) COLLATE ascii_bin NOT NULL, `section` VARCHAR(32) COLLATE ascii_bin NOT NULL, `ordinal` INT UNSIGNED NOT NULL, `payload` JSON NOT NULL, PRIMARY KEY (`dataset`, `section`, `ordinal`));

@@ -24,3 +24,9 @@ The SQL stage skips when there are no files. Before each new migration, the EC2 
 GitHub builds without AWS credentials. A separate job checks the archive, uploads it to private AWS storage using a short-lived role, and deploys through the project's fixed command on the shared EC2 host. The server checks the packaged identity and the site response before marking a release active. It restores the previous release on a failed activation and keeps the current and previous verified releases. Release archives expire after 30 days.
 
 Check the job summary in Actions for skipped runs, errors, and the deployment command ID. To retry after correcting the source, push the fix to `main` or run the workflow again from `main`. For a rerun of an existing run, choose **Re-run all jobs** so the build and deploy jobs use the same attempt number. For a rollback after a successful deploy, revert the application change on `main` or ask the EC2 operator to restore the previous verified release.
+
+## BluePlate live data
+
+The EC2 deployment serves the dashboard as a static Next.js export. Nginx forwards only `/data/blueplate.json` and `/data/orders.json` to the BluePlate systemd service. The service reconstructs the dashboard responses from ordered MySQL rows in `2026_3dsa_3_blueplate` using a host-bound, TLS-verified reader account. Data refreshes from RDS on demand with a 30-second server cache. The imported order records are synthetic. No upstream feed is configured.
+
+The existing workflow applies reviewed DDL in `deploy/migrations/`. Run `deploy/blueplate-data/import_blueplate.py` separately to initialize the two tables with the committed JSON snapshots. The service code and unit under `deploy/blueplate-data/` are host-managed and require a separate rollout when changed. Configure `/etc/blueplate-data/mysql.cnf` as root-only and load it through systemd credentials. Keep the previous Nginx configuration for rollback to the bundled snapshot.

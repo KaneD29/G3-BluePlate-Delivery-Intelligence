@@ -1,0 +1,1 @@
+CREATE TABLE dashboard_sections (`dataset` VARCHAR(24) COLLATE ascii_bin NOT NULL, `section` VARCHAR(32) COLLATE ascii_bin NOT NULL, `is_array` BOOLEAN NOT NULL, `payload` JSON NULL, PRIMARY KEY (`dataset`, `section`));

@@ -1,0 +1,23 @@
+[Unit]
+Description=BluePlate read-only MySQL dashboard data
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+LoadCredential=mysql.cnf:/etc/blueplate-data/mysql.cnf
+ExecStart=/usr/bin/python3 -I /usr/local/lib/blueplate-data/api.py
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+TasksMax=20
+MemoryMax=220M
+
+[Install]
+WantedBy=multi-user.target
