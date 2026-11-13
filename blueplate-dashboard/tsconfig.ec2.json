@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "examples",
+    "dist",
+    ".vinext",
+    ".wrangler",
+    ".sites-runtime",
+    "outputs",
+    "work",
+    "vite.config.ts"
+  ]
+}

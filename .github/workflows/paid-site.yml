@@ -126,6 +126,14 @@ jobs:
             echo 'Deployment skipped. No committed site or migrations.' | tee -a "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Set up BluePlate build runtime
+        if: steps.detect.outputs.build == 'true'
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: blueplate-dashboard/package-lock.json
+
       - name: Run committed static build script
         if: steps.detect.outputs.build == 'true' && steps.detect.outputs.deploy == 'true'
         shell: bash
