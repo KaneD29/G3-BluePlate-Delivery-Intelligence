@@ -5,7 +5,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
+import tempfile
 import time
 from urllib.parse import urlsplit
 
@@ -29,40 +31,94 @@ FROM dashboard_rows WHERE dataset = '{dataset}' ORDER BY section, ordinal;
 COMMIT;
 """
     command = [
-        "/usr/bin/mysql", f"--defaults-file={credentials}", "--no-login-paths",
+        "/usr/bin/timeout", "25", "/usr/bin/mysql", f"--defaults-file={credentials}", "--no-login-paths",
         "--ssl-mode=VERIFY_IDENTITY", "--binary-mode", "--skip-reconnect",
         "--local-infile=0", "--connect-timeout=5", "--default-character-set=utf8mb4", "--batch", "--raw",
-        "--skip-column-names", "--database", SCHEMA,
+        "--quick", "--skip-column-names", "--database", SCHEMA,
     ]
-    result = subprocess.run(command, input=sql.encode(), capture_output=True, check=True, timeout=20)
-    if not result.stdout or len(result.stdout) > MAX_RESPONSE_BYTES:
-        raise ValueError("Invalid dataset response size")
-    sections = {}
-    arrays = set()
-    for line in result.stdout.splitlines():
-        row_type, section, flag_or_ordinal, value = json.loads(line)
-        if row_type == 0:
-            if section in sections:
-                raise ValueError("Duplicate section metadata")
-            if flag_or_ordinal == 1:
-                if value is not None:
-                    raise ValueError("Array metadata has a scalar value")
-                arrays.add(section)
-                sections[section] = []
-            elif flag_or_ordinal == 0:
-                sections[section] = value
-            else:
-                raise ValueError("Invalid section metadata")
-        else:
-            if row_type != 1 or section not in arrays or flag_or_ordinal != len(sections[section]):
-                raise ValueError("Unexpected row order")
-            sections[section].append(value)
+    # Stream MySQL rows to files so the service stays within its memory budget.
+    directory = tempfile.TemporaryDirectory(prefix="blueplate-api-")
+    root = Path(directory.name)
     required = {"restaurants", "cities", "priceChanges", "alerts"} if dataset == "blueplate" else {"fields", "rows", "menus"}
-    if not required.issubset(sections) or any(not sections[key] for key in required):
-        raise ValueError("Incomplete dashboard dataset")
-    raw = json.dumps(sections, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
-    return raw, gzip.compress(raw, compresslevel=3, mtime=0)
+    seen = set()
+    arrays = set()
+    completed_arrays = set()
+    active = None
+    ordinal = 0
+    size = 0
+    try:
+        with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL) as query:
+            query.stdin.write(sql.encode())
+            query.stdin.close()
+            try:
+                with (root / "data.json").open("wb") as raw, gzip.open(root / "data.gz", "wb", compresslevel=3) as compressed:
+                    def write(chunk):
+                        nonlocal size
+                        size += len(chunk)
+                        if size > MAX_RESPONSE_BYTES:
+                            raise ValueError("Dataset exceeds response limit")
+                        raw.write(chunk)
+                        compressed.write(chunk)
 
+                    def encode(value):
+                        return json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
+
+                    write(b"{")
+                    first = True
+                    for line in query.stdout:
+                        row_type, section, flag, value = json.loads(line)
+                        if row_type == 0:
+                            if section in seen or section in arrays or flag not in (0, 1):
+                                raise ValueError("Invalid section metadata")
+                            if flag == 1:
+                                if value is not None:
+                                    raise ValueError("Array metadata has a scalar value")
+                                arrays.add(section)
+                                continue
+                            if not first:
+                                write(b",")
+                            write(encode(section) + b":" + encode(value))
+                            seen.add(section)
+                            first = False
+                            continue
+                        if row_type != 1 or section not in arrays:
+                            raise ValueError("Invalid data row")
+                        if section != active:
+                            if active is not None:
+                                write(b"]")
+                            if section in completed_arrays:
+                                raise ValueError("Repeated array section")
+                            if not first:
+                                write(b",")
+                            write(encode(section) + b":[")
+                            active, ordinal, first = section, 0, False
+                            completed_arrays.add(section)
+                        if flag != ordinal:
+                            raise ValueError("Unexpected row order")
+                        if ordinal:
+                            write(b",")
+                        write(encode(value))
+                        ordinal += 1
+                    if active is not None:
+                        write(b"]")
+                    if not required.issubset(completed_arrays):
+                        raise ValueError("Incomplete dashboard dataset")
+                    for section in sorted(arrays - completed_arrays):
+                        if not first:
+                            write(b",")
+                        write(encode(section) + b":[]")
+                        first = False
+                    write(b"}")
+                    if query.wait(timeout=10):
+                        raise ValueError("MySQL query failed")
+            except Exception:
+                query.kill()
+                raise
+        return directory, root
+    except Exception:
+        directory.cleanup()
+        raise
 
 class DataHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -79,8 +135,8 @@ class DataHandler(BaseHTTPRequestHandler):
         try:
             cached = self.server.cache.get(dataset)
             if cached is None or cached[0] <= time.monotonic():
-                raw, compressed = fetch_dataset(dataset, self.server.credentials)
-                cached = self.server.cache[dataset] = (time.monotonic() + CACHE_SECONDS, raw, compressed)
+                directory, root = fetch_dataset(dataset, self.server.credentials)
+                cached = self.server.cache[dataset] = (time.monotonic() + CACHE_SECONDS, directory, root)
         except (OSError, subprocess.SubprocessError, ValueError):
             self.log_error("MySQL dataset refresh failed for %s", dataset)
             self.send_error(503, "Dataset temporarily unavailable")
@@ -89,18 +145,19 @@ class DataHandler(BaseHTTPRequestHandler):
             encoding.strip().lower() == "gzip"
             for encoding in self.headers.get("Accept-Encoding", "").split(",")
         )
-        body = cached[2 if use_gzip else 1]
+        body = cached[2] / ("data.gz" if use_gzip else "data.json")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
         self.send_header("Vary", "Accept-Encoding")
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Length", str(body.stat().st_size))
         if use_gzip:
             self.send_header("Content-Encoding", "gzip")
         self.end_headers()
         if send_body:
             try:
-                self.wfile.write(body)
+                with body.open("rb") as response:
+                    shutil.copyfileobj(response, self.wfile)
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
