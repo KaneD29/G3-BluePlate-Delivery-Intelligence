@@ -1,0 +1,1 @@
+"""BluePlate ETL pipeline."""

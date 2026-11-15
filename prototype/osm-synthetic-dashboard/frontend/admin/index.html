@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102542">
+  <link rel="icon" type="image/png" href="../assets/blueplate-original-logo.png">
+  <title>BluePlate | Operations Dashboard</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <script>try{const v=localStorage.getItem('blueplate_theme_v4');document.documentElement.dataset.theme=v==='dark'||(v!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light'}catch(e){}</script>
+</head>
+<body data-page="admin">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="./index.html">
+        <img src="../assets/blueplate-original-logo.png" alt="BluePlate logo">
+        <div><strong>BluePlate</strong><span>DELIVERY INTELLIGENCE · UST MANILA</span></div>
+      </a>
+      <div class="top-actions">
+        <span class="header-chip">Admin demo</span>
+        <div class="settings-anchor">
+          <button id="settings-button" class="icon-button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" title="Settings">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .35 1.9l.05.05-2 2-.06-.05a1.7 1.7 0 0 0-1.85-.34 1.7 1.7 0 0 0-1.05 1.54V21H9.2v-.1a1.7 1.7 0 0 0-1.04-1.54 1.7 1.7 0 0 0-1.85.34l-.06.06-2-2 .05-.06A1.7 1.7 0 0 0 4.65 15 1.7 1.7 0 0 0 3.1 14H3v-4h.1A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.35-1.9l-.05-.05 2-2 .06.05A1.7 1.7 0 0 0 8.16 5 1.7 1.7 0 0 0 9.2 3.5V3h5.6v.5A1.7 1.7 0 0 0 15.84 5a1.7 1.7 0 0 0 1.85-.34l.06-.06 2 2-.05.06a1.7 1.7 0 0 0-.35 1.9A1.7 1.7 0 0 0 20.9 10h.1v4h-.1A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+          </button>
+          <div id="settings-popover" class="settings-popover hidden">
+            <h3>Appearance</h3>
+            <div class="theme-choices">
+              <button type="button" data-theme-choice="light">Light</button>
+              <button type="button" data-theme-choice="dark">Dark</button>
+              <button type="button" data-theme-choice="system">System</button>
+            </div>
+            <p class="settings-foot">Theme preference is saved in this browser.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <nav class="sticky-sidebar" aria-label="Dashboard sections">
+        <p class="sidebar-label">Workspace</p>
+        <button class="nav-link active" data-nav="overview" data-target="overview" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Overview
+        </button>
+        <button class="nav-link" data-nav="insights" data-target="insights" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg> Insights
+        </button>
+        <button class="nav-link" data-nav="alerts" data-target="alerts" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg> Alert Center
+        </button>
+        <button class="nav-link" data-nav="restaurants" data-target="restaurants" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h5"/></svg> Restaurants
+        </button>
+        <p class="sidebar-caption">Static demo unless the local Flask/MySQL API is running. No admin login is implemented.</p>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <section id="overview">
+        <div class="section-tag">Operations overview</div>
+        <div class="page-heading">
+          <div>
+            <h1>Campus delivery operations</h1>
+            <p id="executive-summary">Insights into restaurant performance, delivery trends, and operational risk around UST Manila.</p>
+          </div>
+          <div class="page-actions">
+            <button type="button" class="btn secondary" id="simulate-refresh">Simulate refresh</button>
+          </div>
+        </div>
+        <div id="kpis" class="kpis"></div>
+      </section>
+
+      <section id="insights">
+        <div class="section-head">
+          <div>
+            <h2>Performance insights</h2>
+            <p>Comparisons and 7-day trends from warehouse telemetry.</p>
+          </div>
+        </div>
+        <div class="charts">
+          <div class="chart-panel">
+            <h3>Delivery and risk by UST zone</h3>
+            <p>Modeled ETA and cancellation risk index</p>
+            <div class="chart-box"><canvas id="zone-chart"></canvas></div>
+          </div>
+          <div class="chart-panel">
+            <h3>Campus delivery trend</h3>
+            <p>Daily modeled demand and delivery minutes</p>
+            <div class="chart-box"><canvas id="trend-chart"></canvas></div>
+          </div>
+          <div class="chart-panel span2">
+            <h3>Restaurant ratings by cuisine</h3>
+            <p>Average blended rating out of five stars</p>
+            <div class="chart-box"><canvas id="cuisine-chart"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="alerts">
+        <div class="section-head">
+          <div>
+            <h2>Alert Center</h2>
+            <p>Operational notices and manager follow-ups.</p>
+          </div>
+          <div class="tools">
+            <select id="alert-filter" class="field" aria-label="Filter alerts">
+              <option value="ALL">All alerts</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="WARNING">Warning</option>
+              <option value="OPEN">Open only</option>
+            </select>
+          </div>
+        </div>
+        <div id="alerts-list" class="alert-list"></div>
+        <div id="bp-directory-coverage" class="bp-directory-coverage" hidden></div>
+
+        <div class="section-head">
+          <div>
+            <h2>Manager notes</h2>
+            <p>Operational context persisted directly to MySQL.</p>
+          </div>
+        </div>
+        <form id="manager-note-form" class="note-composer">
+          <select id="note-zone" class="field" aria-label="Note zone">
+            <option>UST - España Blvd</option>
+            <option>UST - Dapitan St</option>
+            <option>UST - P. Noval St</option>
+            <option>UST - Lacson Ave</option>
+          </select>
+          <input id="note-text" class="field" placeholder="Add traffic, pickup, or restaurant context" maxlength="400" required>
+          <button class="btn" type="submit">Add note</button>
+        </form>
+        <div id="manager-notes" class="notes-list"></div>
+      </section>
+
+      <section id="restaurants">
+        <div class="section-head">
+          <div>
+            <h2>Restaurant directory</h2>
+            <p>Browse UST Manila restaurants by performance and location.</p>
+          </div>
+        </div>
+        <div class="directory">
+          <div class="directory-toolbar">
+            <div>
+              <h3>UST merchants <span id="restaurant-count" class="sort-desc"></span></h3>
+              <p>Click search, sort, or filter to refine the directory.</p>
+            </div>
+            <div class="tools">
+              <button type="button" class="icon-button" id="open-search" title="Search (⌘/Ctrl + F)" aria-label="Search restaurants" aria-expanded="false">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              </button>
+              <button type="button" class="icon-button" id="open-sort" title="Sort restaurants" aria-label="Sort restaurants" aria-expanded="false">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h11M4 12h8M4 17h5m10-9v12m-3-3 3 3 3-3"/></svg>
+              </button>
+              <button type="button" class="icon-button" id="open-filter" title="Filter restaurants" aria-label="Filter restaurants" aria-expanded="false">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16l-6 7v6l-4 2v-8Z"/></svg>
+              </button>
+              <div id="sort-popover" class="tool-popup hidden">
+                <label for="sort-value">Sort by</label>
+                <select id="sort-value" class="field">
+                  <option value="distance-asc">Distance · closest first</option>
+                  <option value="distance-desc">Distance · farthest first</option>
+                  <option value="name-asc">Name · A to Z</option>
+                  <option value="name-desc">Name · Z to A</option>
+                  <option value="price-asc">Price · low to high</option>
+                  <option value="price-desc">Price · high to low</option>
+                  <option value="risk-desc">Risk · highest first</option>
+                  <option value="risk-asc">Risk · lowest first</option>
+                  <option value="rating-desc">Rating · highest first</option>
+                  <option value="rating-asc">Rating · lowest first</option>
+                  <option value="health-desc">Health · critical first</option>
+                  <option value="health-asc">Health · normal first</option>
+                </select>
+                <button type="button" class="btn" id="sort-apply">Apply sort</button>
+              </div>
+              <div id="filter-popover" class="tool-popup hidden">
+                <label for="filter-zone">UST zone</label>
+                <select id="filter-zone" class="field">
+                  <option value="ALL">All zones</option>
+                  <option value="UST - España Blvd">España</option>
+                  <option value="UST - Dapitan St">Dapitan</option>
+                  <option value="UST - P. Noval St">P. Noval</option>
+                  <option value="UST - Lacson Ave">Lacson</option>
+                </select>
+                <label for="filter-health">Health level</label>
+                <select id="filter-health" class="field">
+                  <option value="ALL">All levels</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="WARNING">Warning</option>
+                  <option value="CRITICAL">Critical</option>
+                </select>
+                <label for="filter-cuisine">Cuisine</label>
+                <select id="filter-cuisine" class="field">
+                  <option value="ALL">All cuisines</option>
+                </select>
+                <button type="button" class="btn" id="filter-reset">Clear filters</button>
+              </div>
+            </div>
+          </div>
+          <div id="search-strip" class="search-strip hidden">
+            <input type="search" id="directory-search" class="field" placeholder="Search a restaurant, cuisine, or street…" aria-label="Search restaurant directory">
+            <button class="icon-button" id="close-search" title="Close search" aria-label="Close search">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></svg>
+            </button>
+          </div>
+          <div class="filter-summary" id="filter-summary">Sorted by distance · closest first</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Restaurant</th>
+                  <th>Zone & gate</th>
+                  <th>Distance</th>
+                  <th>Typical price</th>
+                  <th>Delivery ETA</th>
+                  <th>Risk index</th>
+                  <th>Rating</th>
+                  <th>Health</th>
+                </tr>
+              </thead>
+              <tbody id="directory-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">BluePlate Delivery Intelligence · Connecting to MySQL warehouse…</footer>
+    </main>
+  </div>
+
+  <div class="toast-wrap" id="toasts" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="../assets/sample-data.js"></script>
+  <script src="../assets/app.js"></script>
+  <script src="../assets/blueplate-synthetic-demo.js"></script>
+  <script src="../assets/api-bridge.js"></script>
+</body>
+</html>

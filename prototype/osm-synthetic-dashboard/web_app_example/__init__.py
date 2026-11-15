@@ -1,0 +1,1 @@
+"""BluePlate demonstration API."""
