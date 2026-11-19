@@ -2,6 +2,12 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+for required in package.json package-lock.json; do
+  if [[ ! -f "$repo_root/blueplate-dashboard/$required" ]]; then
+    echo "BluePlate build requires blueplate-dashboard/$required. Restore the app source before running this build." >&2
+    exit 1
+  fi
+done
 cd "$repo_root/blueplate-dashboard"
 npm ci --include=dev --include=optional --no-audit --no-fund
 node --experimental-strip-types scripts/check-dashboard.mjs

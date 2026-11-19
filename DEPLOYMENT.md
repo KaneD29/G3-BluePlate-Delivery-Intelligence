@@ -6,6 +6,8 @@ The [Deploy paid site](https://github.com/KaneD29/G3-BluePlate-Delivery-Intellig
 - `deploy/build.sh`, a Bash script that installs locked dependencies if needed, runs the project's tests and build, and writes the final static site to `deploy/site/`. It must exit with an error if a required check fails.
 - `deploy/migrations/0001_create_orders.sql` and `deploy/migrations/0001_create_orders.verify.sql`, or the next contiguous number for later schema changes. Migration-only pushes can run before a site is available.
 
+For BluePlate, the Next.js build requires the committed `blueplate-dashboard/package.json`, matching `blueplate-dashboard/package-lock.json`, and `deploy/build.sh`. Detection checks these inputs before Node dependency caching. A missing app skips the app build, even if the build script remains. Existing migration pairs can still pass isolated validation and run through the guarded migration-only deployment. If neither a static site nor migration files exist, deployment skips. When the app is present but its lockfile or build script is missing, detection fails with the required filename. Restoring the app and its lockfile on `main` automatically enables the build again.
+
 Include only files intended to be public in `deploy/site/`. Keep environment files, database files, credentials, and original datasets outside that directory. Use a backend deployment configuration if the project needs a server-side runtime or database connection.
 
 ## MySQL migrations

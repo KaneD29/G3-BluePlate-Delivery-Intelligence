@@ -106,10 +106,19 @@ jobs:
           site=false
           build=false
           migrations=false
-          if git ls-files --error-unmatch deploy/build.sh >/dev/null 2>&1; then
+          if git ls-files --error-unmatch blueplate-dashboard/package.json >/dev/null 2>&1; then
+            for required in deploy/build.sh blueplate-dashboard/package-lock.json; do
+              if ! git ls-files --error-unmatch "$required" >/dev/null 2>&1; then
+                echo "::error file=$required::BluePlate source is present but a required build input is missing. Commit $required before deploying."
+                exit 1
+              fi
+            done
             site=true
             build=true
-          elif git ls-files --error-unmatch deploy/site/index.html >/dev/null 2>&1; then
+          else
+            echo 'App build skipped. No committed blueplate-dashboard/package.json.' | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          if [[ "$build" == false ]] && git ls-files --error-unmatch deploy/site/index.html >/dev/null 2>&1; then
             site=true
           fi
           if git ls-files --error-unmatch ':(glob)deploy/migrations/**' >/dev/null 2>&1; then
