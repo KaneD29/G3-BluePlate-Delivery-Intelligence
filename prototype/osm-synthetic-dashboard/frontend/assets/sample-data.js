@@ -1,5 +1,5 @@
 // Illustrative sample data for UI evaluation only; not a database feed.
-    const state = {
+    const bluePlateSampleData = {
       currentRole: 'ADMIN', // 'ADMIN' or 'USER'
       currentUserEmail: 'admin@blueplate.ph',
       alertFilter: 'ALL',

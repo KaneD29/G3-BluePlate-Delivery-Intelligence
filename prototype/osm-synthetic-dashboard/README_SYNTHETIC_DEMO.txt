@@ -14,14 +14,10 @@ can create/edit/resolve/delete BROWSER-LOCAL DEMO actions. Neither is a
 production audit system. Real MySQL review writes and authenticated manager
 endpoints remain disabled. Sample reports are clearly labeled SYNTHETIC.
 
-Install (while inside the BluePlate project folder)
----------------------------------------------------
-  unzip -o ~/Downloads/BluePlate_OSM_Synthetic_Dashboard_Demo.zip -d .
-  bash INSTALL_BLUEPLATE_SYNTHETIC_DEMO.command
-
-The installer checks anchors against the restored OSM-only BluePlate code,
-refuses unexpected source differences without applying partial patches,
-and saves backups in ../blueplate_synthetic_demo_backups/ .
+Setup
+-----
+The release already includes the demo assets and launcher. Follow README.md
+for the local Flask/MySQL setup before running the demo.
 
 Run
 ---

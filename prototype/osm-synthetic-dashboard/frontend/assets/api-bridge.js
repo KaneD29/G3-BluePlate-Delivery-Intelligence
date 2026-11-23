@@ -6,19 +6,27 @@
   const app = window.BluePlateApp;
   if (!app) return;
   const page = document.body.dataset.page;
+  const liveRequired = document.body.dataset.liveRequired === 'true';
   let revision = 0;
+  let coverageRevision = 0;
   let guestEnabled = false;
   let demoEnabled = false;
   let demoRestaurants = [];
+  let challengeWidget;
 
-  async function request(path, opts = {}) {
+  async function request(path, {headers, ...opts} = {}) {
     const response = await fetch(path, {
       credentials: 'same-origin', cache: 'no-store',
-      headers: {'Accept': 'application/json', ...(opts.body ? {'Content-Type': 'application/json'} : {})},
+      headers: {'Accept': 'application/json', ...(opts.body ? {'Content-Type': 'application/json'} : {}), ...headers},
       ...opts
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(String(data.message || `HTTP ${response.status}`).slice(0,200));
+    if (!response.ok) {
+      const error = new Error(String(data.message || `HTTP ${response.status}`).slice(0, 200));
+      error.status = response.status;
+      error.retryAfter = Number(response.headers?.get('Retry-After')) || 0;
+      throw error;
+    }
     return data;
   }
   function numberOrNull(value) {
@@ -33,12 +41,14 @@
     const distance = numberOrNull(row.distance_to_ust_km);
     const zone = String(row.zone_name || 'Unassigned zone');
     const name = String(row.restaurant_name || 'Unnamed restaurant');
-    const branch = String(row.branch_label || row.street_address || 'UST Manila');
+    const address = String(row.street_address || '').trim();
+    const hasAddress = address && !['address not recorded in osm', 'sampaloc, manila'].includes(address.toLowerCase());
+    const branch = String(row.branch_label || (hasAddress ? address : ''));
     const price = numberOrNull(row.avg_menu_price_php);
     return {
       id: Number(row.restaurant_key), name, branch, zone,
       externalPlaceId: String(row.external_place_id || ''),
-      streetAddress: String(row.street_address || ''),
+      streetAddress: hasAddress ? address : '',
       branchLabel: String(row.branch_label || ''),
       cuisine: String(row.cuisine_name || 'Unclassified'),
       nearestGate: distance === null ? 'Distance unavailable' : `${zone.replace('UST - ', '')} (${distance.toFixed(2)} km)`,
@@ -47,7 +57,10 @@
       avgPricePhp: price,
       proxyDeliveryMins: numberOrNull(row.proxy_delivery_mins),
       cancellationProxyPct: numberOrNull(row.cancellation_risk_index),
-      publicRating: numberOrNull(row.blended_rating ?? row.public_avg_rating),
+      publicRating: numberOrNull(row.public_avg_rating),
+      selfReportedRating: numberOrNull(row.auditor_avg_rating),
+      warehouseRatingDays: Number(row.warehouse_rating_days || 0),
+      reportRatingCount: Number(row.report_rating_count || 0),
       verified: numberOrNull(row.observed_delivery_mins),
       orderCount: numberOrNull(row.modeled_demand),
       reportCount: Number(row.auditor_report_count || 0),
@@ -88,7 +101,8 @@
         demoEnabled ? Promise.resolve({days: []}) : request(`/api/dashboard/trends?${query}`)
       ]);
       if (id !== revision) return;
-      if (!Array.isArray(ov.restaurants) || !Array.isArray(alerts.alerts) || !Array.isArray(trends.days)) {
+      if (!Array.isArray(ov.restaurants) || !Array.isArray(alerts.alerts) || !Array.isArray(trends.days) ||
+          (!demoEnabled && !Number.isInteger(ov.report_totals?.auditor_report_count))) {
         throw new Error('The Flask API returned an unexpected response format');
       }
       const preview = demoEnabled ? ov.restaurants.map(window.BluePlateSynthetic.metrics) : ov.restaurants;
@@ -96,6 +110,9 @@
       const displayTrend = demoEnabled ? window.BluePlateSynthetic.trend(range) : trends.days;
       app.setAdmin({
         demo: demoEnabled,
+        hasObservations: trends.days.length > 0 ||
+          Number(ov.report_totals?.auditor_report_count) > 0,
+        reportTotals: ov.report_totals,
         restaurants: uniqueRestaurants(preview.map(restaurant)),
         alerts: displayAlerts.map(a => ({
           id: Number(a.alert_id),
@@ -120,6 +137,32 @@
       throw err;
     }
   }
+  async function refreshDashboard(allowDefault = false) {
+    if (!demoEnabled) {
+      const pending = ++coverageRevision;
+      const initialRevision = revision;
+      let warehouseDate, reportDate;
+      try {
+        const coverage = await request('/api/dashboard/coverage');
+        const dates = [coverage.latest_reporting_date, coverage.latest_report_submission_date];
+        if (coverage.status !== 'ok' || dates.some(date => date !== null &&
+            (typeof date !== 'string' || !/^\d{4}-\d\d-\d\d$/.test(date)))) {
+          throw new Error('Unexpected reporting coverage response');
+        }
+        [warehouseDate, reportDate] = dates;
+      } catch (err) {
+        console.warn('[BluePlate] Reporting coverage unavailable:', err);
+      }
+      if (pending !== coverageRevision) return;
+      const periodUnchanged = initialRevision === revision;
+      const before = app.getRange();
+      app.setReportingCoverage(warehouseDate, reportDate, allowDefault && periodUnchanged);
+      const after = app.getRange();
+      // A newer request already loaded this range unless freshness advanced it.
+      if (!periodUnchanged && before.from === after.from && before.to === after.to) return;
+    }
+    return refreshAdmin(app.getRange());
+  }
   async function refreshPublicReviews() {
     if (demoEnabled) {
       app.setPublicReviews(window.BluePlateSynthetic.reports(demoRestaurants));
@@ -129,9 +172,56 @@
     if (!Array.isArray(data.reviews)) throw new Error('Unexpected reviews response');
     app.setPublicReviews(data.reviews);
   }
+  function configureChallenge({site_key, action}) {
+    const form = document.getElementById('audit-form');
+    const panel = document.createElement('div');
+    panel.textContent = 'Loading report verification…';
+    form.querySelector('[type="submit"]').before(panel);
+    const unavailable = () => {
+      panel.textContent = 'Report verification is unavailable. Reload the page to try again.';
+    };
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.onerror = unavailable;
+    script.onload = () => {
+      try {
+        panel.textContent = '';
+        challengeWidget = window.turnstile.render(panel, {sitekey: site_key, action});
+      } catch (_) {
+        unavailable();
+      }
+    };
+    document.head.append(script);
+  }
   async function submitReport(payload) {
-    if (!guestEnabled) throw new Error('Guest reports are disabled pending anti-abuse controls');
-    return request('/api/user/reviews', {method: 'POST', body: JSON.stringify(payload)});
+    if (!guestEnabled || demoEnabled) throw new Error('Guest reports are disabled');
+    const capabilities = await request('/api/session');
+    if (capabilities.guest_reports_enabled !== true || !capabilities.guest_form_token) {
+      throw new Error('Guest reports are disabled');
+    }
+    if (liveRequired || capabilities.guest_challenge) {
+      const token = challengeWidget != null && window.turnstile?.getResponse(challengeWidget);
+      if (!token) throw new Error('Complete the report verification challenge first.');
+      payload = {...payload, challenge_response: token};
+    }
+    try {
+      return await request('/api/user/reviews', {
+        method: 'POST',
+        headers: {'X-BluePlate-Form-Token': capabilities.guest_form_token},
+        body: JSON.stringify(payload)
+      });
+    } finally {
+      // Provider tokens expire and are single-use. The submission UUID remains stable.
+      if (challengeWidget != null) {
+        try {
+          window.turnstile.reset(challengeWidget);
+        } catch (_) {
+          // A widget error must not replace an accepted report receipt.
+          challengeWidget = undefined;
+        }
+      }
+    }
   }
   async function restaurantDetail(id, range) {
     return request(`/api/restaurants/${encodeURIComponent(id)}?${qrange(range)}`);
@@ -144,25 +234,29 @@
     if (which !== 'restaurants') return;
     window.location.assign(`/api/exports/restaurants.csv?${qrange(range)}`);
   }
-  window.BluePlateBridge = {refreshAdmin, refreshPublicReviews, submitReport, restaurantDetail, downloadCsv};
+  window.BluePlateBridge = {refreshAdmin, refreshDashboard, refreshPublicReviews, submitReport, restaurantDetail, downloadCsv};
 
   async function initialize() {
+    if (liveRequired && page === 'admin') {
+      document.getElementById('simulate-refresh').onclick = initialize;
+    }
     try {
       const health = await request('/api/health');
-      if (health.service !== 'blueplate-local-flask') return;
-    } catch (_) {
-      // GitHub Pages/Google Sites only serve a static demo. No data API is implied.
+      if (health.service !== 'blueplate-local-flask') throw new Error('Live API unavailable');
+    } catch (err) {
+      if (liveRequired) app.showError(err.message);
       return;
     }
     try {
       const session = await request('/api/session');
-      // /api/session MUST NOT return a token. It only describes configured features.
+      // Guest form tokens authorize a submission only in this browser session.
       guestEnabled = session.guest_reports_enabled === true;
-      demoEnabled = session.synthetic_demo_enabled === true;
+      demoEnabled = !liveRequired && session.synthetic_demo_enabled === true;
       if (demoEnabled && !window.BluePlateSynthetic) throw new Error("Synthetic module missing");
       app.activateLive({guestEnabled, demoEnabled});
+      if (page === 'public' && guestEnabled && session.guest_challenge) configureChallenge(session.guest_challenge);
       if (page === 'admin') {
-        await refreshAdmin(app.getRange());
+        await refreshDashboard(true).catch(() => {});
       } else if (page === 'public') {
         const all = [];
         let offset = 0;

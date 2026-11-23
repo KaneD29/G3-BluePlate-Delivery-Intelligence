@@ -19,7 +19,7 @@
     const health = eta >= 42 || risk >= 15 || rating < 3.7 ? 'CRITICAL'
        : eta >= 34 || risk >= 8 || rating < 4.2 ? 'WARNING' : 'NORMAL';
     return { ...row,
-      recorded_rating: row.blended_rating ?? row.public_avg_rating ?? null,
+      recorded_rating: row.public_avg_rating ?? null,
       proxy_delivery_mins: eta, cancellation_risk_index: risk,
       blended_rating: rating, public_avg_rating: rating,
       modeled_demand: demand, overall_health_status: health,

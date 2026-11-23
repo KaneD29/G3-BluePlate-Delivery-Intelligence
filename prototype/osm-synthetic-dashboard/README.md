@@ -45,7 +45,7 @@ In macOS Terminal or VS Code's integrated terminal:
 cd /path/to/blueplate_delivery_intelligence
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -c requirements-lock.txt
 cp .env.example .env
 ```
 
@@ -59,7 +59,7 @@ In VS Code's **PowerShell** terminal:
 cd C:\path\to\blueplate_delivery_intelligence
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -c requirements-lock.txt
 Copy-Item .env.example .env
 ```
 
@@ -69,7 +69,7 @@ Replace `C:\path\to\blueplate_delivery_intelligence` with the real folder on you
 
 ```bat
 .venv\Scripts\activate.bat
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -c requirements-lock.txt
 copy .env.example .env
 ```
 
@@ -152,7 +152,7 @@ The collector now requests restaurants through the **OpenStreetMap Overpass API*
 To run Python checks:
 
 ```sh
-python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements-dev.txt -c requirements-lock.txt
 python -m pytest -q
 python -m compileall -q etl web_app_example
 ```
@@ -195,23 +195,82 @@ The existing Admin HTML route **is not secure**. The `/api/session` response doe
 | GET | `/api/dashboard/alerts?severity=ALL` | Recorded warehouse alerts, not sample alerts |
 | GET | `/api/exports/restaurants.csv?from=...&to=...` | CSV for actual warehouse records |
 | GET | `/api/exports/reports.csv?from=...&to=...` | Requires manager access; self-reported text |
-| POST | `/api/user/reviews` | Guest reviews: **disabled by default**, anti-abuse controls needed |
+| POST | `/api/user/reviews` | Guest reviews: **disabled by default**, controlled development pilot or separately gated HTTPS production |
 | GET/POST | `/api/manager/actions` | Requires development manager token; GET can filter by `status`, `category`, and `q` |
 | PATCH/DELETE | `/api/manager/actions/<annotation_id>` | Requires development manager token |
 
 A missing `from`/`to` means the past **7 local Manila calendar days**, inclusive. Maximum window is 366 days; future dates are rejected. API fields use SQL-native `restaurant_key`, `zone_key`, `alert_id`, and categories/status codes. Do not send sample-data IDs or modeled alert strings as database foreign keys.
 
-### Example: report payload for local test
+### Local guest report pilot
 
-Set `ENABLE_GUEST_REPORTS=true` in `.env` **for local testing only**, restart Flask, then:
+Keep the pilot off by default. Before enabling it against a disposable MySQL
+instance, verify the review table has the columns and unique submission UUID
+index from `database/06_v8_oltp_migration.sql`. Run one Flask process bound to
+`127.0.0.1` without a reverse proxy or the synthetic launcher. Pass
+`BLUEPLATE_ENV=development`, `ENABLE_GUEST_REPORTS=true`,
+`ENABLE_SYNTHETIC_DEMO=false`, and a random `BLUEPLATE_GUEST_SESSION_SECRET`
+of at least 32 characters in the process environment. The development flag
+alone never enables production writes.
 
-```sh
-curl -X POST http://127.0.0.1:5000/api/user/reviews \
-  -H 'Content-Type: application/json' \
-  -d '{"restaurant_key": 1, "rating_score": 5, "order_was_cancelled": false, "actual_observed_delivery_mins": 28, "comment_text": "Gate pickup was easy"}'
-```
+Use the public form on the Flask origin. It uses a signed browser session,
+a short-lived form token, and a submission UUID reused on retries. The
+process allows 5 attempts per session and 15 per peer per 60-second window.
+These are development controls. An actor with local access can obtain its own
+session. Public report cards display structured report fields only. Free text
+remains in MySQL and is available through the existing manager-only export.
+Review timestamps and dashboard report date filters use Manila time.
 
-Use a **real restaurant\_key** returned by `/api/restaurants`, not hardcoded `1` unless it exists. The API never accepts `user_id` from a guest. A canceled review requires `null` minutes.
+### Production guest gate and live dashboard
+
+The production root and read-only `/dashboard/` must be served by Flask so the
+browser receives the live-only page. They render an unavailable state if the
+API or warehouse fails. The development `/admin/` remains a local tool.
+Production denies manager mutations, the private report export, and the HTTP
+ETL trigger before opening a database connection.
+
+Keep `ENABLE_PRODUCTION_GUEST_REPORTS=false` until staging checks pass. Start the
+Flask service with `BLUEPLATE_ENV=production`, synthetic mode and the demo
+manager token disabled, and a stable random `BLUEPLATE_GUEST_SESSION_SECRET` of
+at least 32 characters supplied through the host's secret mechanism. Use the
+same secret for all workers. The production gate requires Secure, HttpOnly,
+host-only, Strict SameSite cookies. Configure `BLUEPLATE_PUBLIC_ORIGIN` as the
+exact lowercase HTTPS origin without a port or trailing slash.
+
+This implementation supports one TLS-terminating Nginx proxy on the Flask
+host. Bind the WSGI listener to loopback, set `BLUEPLATE_TRUSTED_PROXY_HOPS=1`
+and `BLUEPLATE_TRUSTED_PROXY_IP` to the actual immediate peer
+(`127.0.0.1` or `::1`), and reject alternate public hosts at ingress. Nginx
+must set `Host` to the canonical hostname, overwrite `X-Forwarded-Proto` with
+the actual ingress scheme, and overwrite `X-Forwarded-For` with the direct
+client address. Do not append to a browser-supplied forwarding header. Flask
+does not apply forwarded values globally. Requests from an unconfigured peer
+or with ambiguous headers cannot enable guest writes. Review the trust model
+before adopting an ALB, CDN, additional proxy hop, or a shared host with
+untrusted local processes.
+
+Configure ingress shared request limits for the guest POST, both per client
+and across the route, plus a limit on session/token issuance. Return `429`
+and a `Retry-After` header, and test limits from a shared campus network.
+The application has bounded per-worker limits as a secondary guard. They
+reset on worker restart and do not provide cross-worker protection.
+
+Use Cloudflare Turnstile keys for the exact public hostname in
+`BLUEPLATE_TURNSTILE_SITE_KEY` and `BLUEPLATE_TURNSTILE_SECRET_KEY`. Allow
+the Turnstile resource in the site's script and frame policy and HTTPS
+egress to its fixed Siteverify endpoint. Configure no logging of request
+bodies, cookies, tokens, provider secrets, or private notes. A provider
+rejection fails the submission. For an unchanged retry, the browser uses
+a fresh challenge response and keeps the same submission UUID.
+
+Use `GET /api/health` for process health and `GET /api/ready` for database
+readiness. Readiness probes public-route schema permissions and the review
+indexes with no report data reads, and returns only `ready` or `unavailable`.
+Keep the production write switch off until the cloud operator verifies the
+real hostname and proxy, shared rate limits, Turnstile, and dedicated MySQL
+credentials with server-verified TLS. Set production `APP_DB_*` explicitly.
+RDS TLS wiring, deployment packaging, and infrastructure configuration are
+outside this step. Revert the write switch and restart the service to stop
+new guest submissions while preserving stored reports.
 
 ### Example: manager action (development-only)
 
@@ -237,7 +296,7 @@ Use a real `zone_key`, and optionally `restaurant_key` or a real fact alert ID. 
 ## Tests
 
 ```sh
-python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements-dev.txt -c requirements-lock.txt
 python -m pytest -q
 python -m compileall -q etl web_app_example
 ```

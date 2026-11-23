@@ -46,6 +46,19 @@ def ensure_date_key(conn, today):
     return key
 
 
+def upsert_modeled_daily_metrics(cursor, date_key, restaurant_key, zone_key):
+    # The legacy rating column is NOT NULL. Seed a placeholder only for new rows
+    # with no reviews. Refreshing modeled facts must never change an existing rating.
+    cursor.execute(
+        """INSERT INTO fact_restaurant_daily_metrics (
+            date_key, restaurant_key, zone_key, avg_rating, total_review_count,
+            daily_new_reviews, estimated_order_volume, severity_level
+        ) VALUES (%s,%s,%s,4.30,0,0,25,'NORMAL')
+        ON DUPLICATE KEY UPDATE zone_key=VALUES(zone_key)""",
+        (date_key, restaurant_key, zone_key),
+    )
+
+
 def run_etl_pipeline(fetcher=fetch_ust_eateries_osm_overpass, *, offline_sha256=None):
     """Transactional upsert from free OpenStreetMap Overpass data."""
     started = datetime.now(MANILA)
@@ -128,18 +141,7 @@ def run_etl_pipeline(fetcher=fetch_ust_eateries_osm_overpass, *, offline_sha256=
             )
             restaurant_key = cursor.fetchone()["restaurant_key"]
 
-            # Legacy NOT NULL rating placeholder, not an observed/public rating.
-            # API excludes ratings when total_review_count is zero. Demand is modeled.
-            baseline_rating = 4.30
-            cursor.execute(
-                """INSERT INTO fact_restaurant_daily_metrics (
-                    date_key, restaurant_key, zone_key, avg_rating, total_review_count,
-                    daily_new_reviews, estimated_order_volume, severity_level
-                ) VALUES (%s,%s,%s,%s,0,0,25,'NORMAL')
-                ON DUPLICATE KEY UPDATE
-                    zone_key=VALUES(zone_key), avg_rating=VALUES(avg_rating)""",
-                (date_key, restaurant_key, zone_key, baseline_rating),
-            )
+            upsert_modeled_daily_metrics(cursor, date_key, restaurant_key, zone_key)
 
             # Delivery ETA proxy fact
             eta_mins = enrich["estimated_total_delivery_mins"]

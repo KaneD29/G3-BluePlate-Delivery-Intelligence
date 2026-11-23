@@ -98,7 +98,7 @@ python -m etl.warehouse_loader --offline-osm data/osm/ust-osm.json --manifest da
 Run the checks:
 
 ```sh
-python -m pytest -q -k 'not test_private_env_not_in_source_bundle'
+python -m pytest -q
 ```
 
 Flask is already running on localhost port 5001. If it stops, start it with:
