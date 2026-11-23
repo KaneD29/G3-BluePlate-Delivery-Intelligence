@@ -886,11 +886,17 @@ def block_production_management():
         return jsonify({"status": "error", "message": "Not found"}), 404
 
 
-def serve_live_frontend(filename):
+def serve_frontend(filename, *, live_required=False):
     path = FRONTEND_ROOT / filename
     if not path.is_file():
         return jsonify({"status": "error", "message": "Frontend not installed"}), 404
-    markup = path.read_text(encoding="utf-8").replace("<body ", '<body data-live-required="true" ', 1)
+    markup = path.read_text(encoding="utf-8")
+    markup = re.sub(r'data-flask-home href="[^"]+"', 'data-flask-home href="/"', markup)
+    markup = re.sub(r'data-flask-dashboard href="[^"#]+([^"]*)"',
+                    r'data-flask-dashboard href="/dashboard/\1"', markup)
+    if not live_required:
+        return Response(markup, mimetype="text/html", headers={"Cache-Control": "no-store"})
+    markup = markup.replace("<body ", '<body data-live-required="true" ', 1)
     markup = re.sub(r'<!-- local-manager:start -->.*?<!-- local-manager:end -->', "", markup, flags=re.S)
     markup = re.sub(r'<script src="(?:\.\./)?assets/(?:sample-data|blueplate-synthetic-demo)\.js"></script>',
                     "", markup)
@@ -907,10 +913,7 @@ def serve_live_frontend(filename):
                                 "Recent self-reported delivery experiences.")
         markup = markup.replace("Interactive prototype with sample data. Public reporting page; no account is required in demo mode.",
                                 "Campus delivery reports and restaurant analytics.")
-        markup = markup.replace('<span class="header-chip">Delivery reports</span>',
-                                '<a href="/dashboard/">BI dashboard</a><span class="header-chip">Delivery reports</span>')
     else:
-        markup = markup.replace('href="./index.html"', 'href="/"', 1)
         markup = markup.replace("Admin demo", "Read-only BI dashboard")
         markup = markup.replace("Static demo unless the local Flask/MySQL API is running. No admin login is implemented.",
                                 "Read-only warehouse analytics and community report summaries.")
@@ -920,15 +923,13 @@ def serve_live_frontend(filename):
 
 @app.get("/dashboard/")
 def serve_dashboard():
-    return serve_live_frontend("admin/index.html")
+    return serve_frontend("admin/index.html", live_required=True)
 
 
 @app.get("/")
 def serve_public():
-    if os.getenv("BLUEPLATE_ENV", "").lower() == "production":
-        return serve_live_frontend("index.html")
     if FRONTEND_ROOT.joinpath("index.html").is_file():
-        return send_from_directory(FRONTEND_ROOT, "index.html")
+        return serve_frontend("index.html", live_required=os.getenv("BLUEPLATE_ENV", "").lower() == "production")
     return jsonify({"service": "BluePlate V8 API", "hint": "Place V8 frontend/ beside etl/ to serve it here"})
 
 
@@ -936,9 +937,7 @@ def serve_public():
 def serve_admin():
     if os.getenv("BLUEPLATE_ENV", "development").lower() == "production":
         return jsonify({"status": "error", "message": "Admin sign-in not implemented"}), 403
-    if not FRONTEND_ROOT.joinpath("admin/index.html").is_file():
-        return jsonify({"status": "error", "message": "Frontend not installed"}), 404
-    return send_from_directory(FRONTEND_ROOT / "admin", "index.html")
+    return serve_frontend("admin/index.html")
 
 
 @app.get("/assets/<path:filename>")

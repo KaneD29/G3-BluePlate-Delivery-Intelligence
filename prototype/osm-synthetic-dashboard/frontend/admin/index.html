@@ -12,11 +12,11 @@
 <body data-page="admin">
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="./index.html">
+      <a class="brand" data-flask-home href="../index.html">
         <img src="../assets/blueplate-original-logo.png" alt="BluePlate logo">
         <div><strong>BluePlate</strong><span>DELIVERY INTELLIGENCE · UST MANILA</span></div>
       </a>
-      <div class="top-actions">
+      <nav class="workflow-nav" aria-label="BluePlate workflows"><a data-flask-home href="../index.html">Submit a Report</a><a data-flask-dashboard href="./index.html">BI Dashboard</a></nav><div class="top-actions">
         <span class="header-chip">Admin demo</span>
         <div class="settings-anchor">
           <button id="settings-button" class="icon-button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" title="Settings">
@@ -227,6 +227,26 @@
           </div>
         </div>
       </section>
+
+      <details id="data-methodology" class="methodology" open>
+        <summary>Data &amp; Methodology</summary>
+        <ul>
+          <li><strong>Restaurant inventory.</strong> Venue names and locations come from OpenStreetMap (ODbL).
+            Address and cuisine coverage depend on the available tags. <a href="https://www.openstreetmap.org/copyright">OSM attribution</a></li>
+          <li><strong>Modeled warehouse estimates.</strong> ETA combines modeled travel time, cuisine-based preparation time,
+            and four minutes for handoff. Demand assumes 25 orders per venue-day. Cancellation risk is a distance-based index in points.</li>
+          <li><strong>Self-reported observations.</strong> Student reports are a self-selected sample. Completed-delivery averages use
+            completed reports with valid minutes. Self-reported cancellation share is cancelled reports divided by reports with a known outcome.
+            A zero denominator gives an unavailable share. Report dates are Manila submission dates.</li>
+          <li><strong>Refresh and ETL.</strong> Refresh reloads the dashboard and its dates. An operator runs OSM ingestion and generates
+            warehouse estimates separately.</li>
+        </ul>
+        <nav class="methodology-links" aria-label="Read-only SQL sources">
+          <a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/tree/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database">SQL schema directory</a>
+          <a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/blob/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database/06_v8_oltp_migration.sql">Migration 06</a>
+          <a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/blob/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database/07_v8_daily_analytics_view.sql">Daily BI view 07</a>
+        </nav>
+      </details>
 
       <footer class="footer">BluePlate Delivery Intelligence · Connecting to MySQL warehouse…</footer>
     </main>

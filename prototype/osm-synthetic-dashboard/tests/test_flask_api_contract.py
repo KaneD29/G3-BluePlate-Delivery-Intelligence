@@ -624,3 +624,27 @@ def test_readiness_only_probes_schema_and_is_generic(client, monkeypatch, failur
     database.commit.assert_not_called()
     if not failure:
         assert probe.call_count == 9
+
+
+@pytest.mark.parametrize("mode,path", [
+    ("development", "/"), ("development", "/admin/"), ("development", "/dashboard/"),
+    ("production", "/"), ("production", "/dashboard/"),
+])
+def test_presentation_links_in_flask_modes(client, monkeypatch, mode, path):
+    monkeypatch.setenv("BLUEPLATE_ENV", mode)
+    response = client.get(path)
+    assert response.status_code == 200
+    assert response.data.count(b'href="/"') == 2  # Logo and report navigation.
+    assert response.data.count(b'href="/dashboard/"') == 1
+    assert response.data.count(b'BI Dashboard</a>') == 1
+    if path == "/":
+        assert b'href="/dashboard/#data-methodology"' in response.data
+        assert b'min="1" max="240" step="1"' in response.data
+        assert b'value="no" checked' not in response.data
+        assert b'id="rating-value" value=""' in response.data
+    else:
+        assert b'id="data-methodology"' in response.data
+        assert b'ceb7a271ada825cfe721c3a9850b2ca74e093b86' in response.data
+        assert b'06_v8_oltp_migration.sql' in response.data
+        assert b'07_v8_daily_analytics_view.sql' in response.data
+    assert client.get("/database/06_v8_oltp_migration.sql").status_code == 404

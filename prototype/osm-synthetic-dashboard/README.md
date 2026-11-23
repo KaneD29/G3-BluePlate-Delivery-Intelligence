@@ -2,7 +2,12 @@
 
 BluePlate is a UST Manila restaurant-delivery **business-intelligence course prototype**. This package updates the *original* Python ETL, MySQL warehouse, and example Flask API for the locally developed **BluePlate Frontend V8**.
 
-> **Status: repaired local integration, not production deployment.** Thom's V8 code and this repair include `frontend/assets/api-bridge.js`. When the page is served from **local Flask on port 5000**, it requests MySQL-backed restaurants, dated overview/alerts/trends, and recent auditor reports. When served from Python's static server, GitHub Pages, or Google Sites, the same frontend remains a **clearly labeled static demo**. The team's separately deployed Next.js/MySQL service is a different architecture. Do not merge this project into its deployment workflow without review. Manager API writes remain disabled in the live browser interface until real authentication is implemented.
+> **Status: Flask v1 verified in isolated MySQL and browser tests. Production deployment is separate.** Thom's V8 code and this repair include `frontend/assets/api-bridge.js`. When the page is served from **local Flask on port 5000**, it requests MySQL-backed restaurants, dated overview/alerts/trends, and recent auditor reports. When served from Python's static server, GitHub Pages, or Google Sites, the same frontend remains a **clearly labeled static demo**. The team's separately deployed Next.js/MySQL service is a different architecture. Do not merge this project into its deployment workflow without review. Manager API writes remain disabled in the live browser interface until real authentication is implemented.
+
+Open **Submit a Report** at `/` or **BI Dashboard** at `/dashboard/`.
+The dashboard’s **Data & Methodology** section explains the two workflows and links to the
+[verified release SQL](https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/tree/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database).
+Guest writes remain off by default; use the controlled local pilot for rehearsal.
 
 ## Components and roles
 
@@ -22,7 +27,7 @@ The `database/01...05...` files are the original schema and seed scripts. They a
 - **Modeled / seeded**: Thom's revised ETL inserts baseline `4.30` restaurant ratings, `25` modeled orders per day, computed delivery estimates, and risk indicators. These values are **synthetic assumptions**, not observed sales, delivery records, or cancellation rates. Data loaded into SQL remains modeled even when retrieved live from MySQL.  
 - **Not available unless separately ingested:** Verified deliveries, cancellations, and actual order volumes. The repaired frontend displays unavailable database fields as `—` rather than substituting a fixed price, rating, risk, or ETA. Historical frontend charts use only dates returned by the database; no browser-generated history is added in live mode.  
 - **Statuses**: the API follows `dim_alert_threshold` from SQL seed (delivery warning 35/critical 45, risk warning 8/critical 15, rating warning below 4.0/critical below 3.6). These differ from some hardcoded V8 *demo UI* thresholds and must be unified when the frontend is connected.  
-- **Collector provenance:** `etl/ust_api_collector.py` was changed by Thom to OSM Overpass with a hardcoded fallback restaurant list if upstream requests fail. That fallback has **not been independently verified**; do not describe fallback IDs or venue details as confirmed OSM observations. Review OSM/Overpass usage conditions before refreshing. The `GOOGLE_PLACES_API_KEY` field is a legacy config entry, not required for the current Overpass collector.
+- **Collector provenance:** The live collector uses OSM Overpass and stops if all mirrors fail. The offline path validates the attributed OSM extract against its checksum manifest. Both paths generate modeled warehouse estimates; guest delivery reports are collected through the website.
 
 ## Setup on macOS and Windows (VS Code)
 
@@ -157,7 +162,7 @@ python -m pytest -q
 python -m compileall -q etl web_app_example
 ```
 
-These are local code checks, **not** MySQL migration tests or V8 frontend-to-API integration tests.
+These commands run automated checks with fixtures. Disposable MySQL and browser acceptance were verified separately.
 
 ### G. Read the frontend changelog on macOS and Windows
 
@@ -301,7 +306,7 @@ python -m pytest -q
 python -m compileall -q etl web_app_example
 ```
 
-These checks exercise pure validation and endpoint contracts with mocks. They are **not** a real MySQL migration test or an end-to-end V8 frontend integration test. Test the migration against a disposable MySQL 8.x database before merging.
+These checks exercise validation and endpoint contracts with mocks. Run any future schema change against a disposable MySQL 8.x instance before release.
 
 ## Collaboration and deployment notes
 
@@ -326,7 +331,7 @@ The maintained repaired files are `frontend/assets/app.js`, `frontend/assets/api
 
 **Local integration test:** run `python -m web_app_example.flask_db_connector` from the project root and open `http://127.0.0.1:5000/admin/`. Check `/api/dashboard/overview` using dated query parameters. Then change 7 days to 30 days: the Network panel should show new overview, trend, and alert requests. Open `http://127.0.0.1:5000/` and search a real database restaurant. If guest reports are disabled, the submit control will remain disabled rather than writing fake local records.
 
-See `docs/THOM_V8_INTEGRATION_REPAIR.md` for the repair details and validation boundaries. **The real MySQL schema and the user's local Flask deployment have not been exercised by the automated tests in this environment.** Do not overwrite the already deployed Next.js project with this local Flask pack without agreement from the cloud developer.
+See `docs/THOM_V8_INTEGRATION_REPAIR.md` for the repair details and validation boundaries. Separate disposable MySQL 8.0 checks verified schema setup, guest persistence and retries, privacy, Manila date boundaries, report statistics, and the production write denial. Browser acceptance also verified the isolated guest flow. Production still requires deployment and HTTPS/Turnstile acceptance through the actual ingress. Do not overwrite the already deployed Next.js project with this local Flask pack without agreement from the cloud developer.
 
 
 ### Local validation on MySQL 8 / port 3307

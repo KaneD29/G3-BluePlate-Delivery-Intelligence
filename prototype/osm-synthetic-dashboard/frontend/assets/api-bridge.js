@@ -187,7 +187,9 @@
     script.onload = () => {
       try {
         panel.textContent = '';
-        challengeWidget = window.turnstile.render(panel, {sitekey: site_key, action});
+        challengeWidget = window.turnstile.render(panel, {
+          sitekey: site_key, action, size: panel.clientWidth < 300 ? 'compact' : 'normal'
+        });
       } catch (_) {
         unavailable();
       }

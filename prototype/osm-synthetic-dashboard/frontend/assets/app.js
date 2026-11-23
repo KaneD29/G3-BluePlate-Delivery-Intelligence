@@ -15,7 +15,7 @@ let editingActionId=null;
 let linkedActionAlert=null;
 let pendingActionDelete=null;
 const THEME_KEY='blueplate_theme_v4';
-let selectedRating=5;
+let selectedRating=0;
 const selectedNotes=new Set();
 let charts=[];
 let sortBy='default';
@@ -96,8 +96,9 @@ function initPublic(){const select=$('audit-restaurant');select.innerHTML='<opti
  const texts=['On time','Arrived early','Late delivery','Friendly rider','Easy gate pickup','Difficult pickup','Fresh and hot','Food arrived cold','Well packaged','Spilled food','Missing item','Wrong order','Good value','Price felt high','Long preparation','Order was cancelled'];
  $('quick-notes').innerHTML=texts.map((label,i)=>`<button type="button" class="tag" data-note="${html(label)}" aria-pressed="false">${html(label)}</button>`).join('');
  $('quick-notes').addEventListener('click',e=>{const b=e.target.closest('[data-note]');if(!b)return;const val=b.dataset.note;if(selectedNotes.has(val))selectedNotes.delete(val);else selectedNotes.add(val);b.classList.toggle('selected',selectedNotes.has(val));b.setAttribute('aria-pressed',String(selectedNotes.has(val)));});
- $('stars').addEventListener('click',e=>{const b=e.target.closest('[data-star]');if(b)setRating(+b.dataset.star);});setRating(5);
+ $('stars').addEventListener('click',e=>{const b=e.target.closest('[data-star]');if(b)setRating(+b.dataset.star);});setRating(0);
  document.querySelectorAll('input[name="audit-cancelled"]').forEach(x=>x.onchange=updateCancelled);
+ updateCancelled();
  $('audit-form').addEventListener('submit',submitPublic);
  renderPublicReviews();
 }
@@ -234,14 +235,34 @@ function initRestaurantAutocomplete(){
 }
 
 function setRating(n){selectedRating=n;$('rating-value').value=n;document.querySelectorAll('[data-star]').forEach(b=>{b.classList.toggle('filled',Number(b.dataset.star)<=n);b.setAttribute('aria-pressed',String(Number(b.dataset.star)===n));});}
-function updateCancelled(){const cancel=document.querySelector('input[name="audit-cancelled"]:checked')?.value==='yes';const mins=$('audit-minutes');mins.required=!cancel;mins.disabled=cancel;$('minutes-hint').textContent=cancel?'No delivery time is needed for a cancelled order.':'From placing the order to delivery';}
+function updateCancelled(){
+ const outcome=document.querySelector('input[name="audit-cancelled"]:checked')?.value;
+ const mins=$('audit-minutes');
+ mins.required=outcome==='no';mins.disabled=outcome!=='no';
+ $('minutes-hint').textContent=outcome==='yes'?'No delivery time is needed for a cancelled order.':
+  outcome==='no'?'Enter 1–240 whole minutes from placing the order to delivery.':'Choose an order outcome first.';
+}
 function guestPayload(report, submission) {
  const fingerprint=JSON.stringify(report);
  return submission?.fingerprint===fingerprint
    ? submission
    : {fingerprint, payload:{...report,client_submission_id:crypto.randomUUID()}};
 }
-function submitPublic(e){e.preventDefault();const restaurantId=+$('audit-restaurant').value;const cancelled=document.querySelector('input[name="audit-cancelled"]:checked')?.value==='yes';const minutes=cancelled?null:+$('audit-minutes').value;const details=$('audit-details').value.trim();if(!restaurantId){toast('Choose a restaurant from the suggestions first.');$('audit-restaurant')._bpFocus?.();return;}if(!selectedNotes.size&&!details){toast('Select at least one quick note or add some details.');return;}
+function submitPublic(e){
+ e.preventDefault();
+ const restaurantId=+$('audit-restaurant').value;
+ const outcome=document.querySelector('input[name="audit-cancelled"]:checked')?.value;
+ const cancelled=outcome==='yes';
+ const minutes=cancelled?null:Number($('audit-minutes').value);
+ const details=$('audit-details').value.trim();
+ if(!restaurantId){toast('Choose a restaurant from the suggestions first.');$('audit-restaurant')._bpFocus?.();return;}
+ if(outcome!=='yes'&&outcome!=='no'){toast('Choose Delivered or Cancelled.');return;}
+ if(!cancelled&&(!Number.isInteger(minutes)||minutes<1||minutes>240)){
+  toast('Enter a delivery time between 1 and 240 whole minutes.');$('audit-minutes').focus();return;
+ }
+ if(!selectedRating){toast('Choose a rating from 1 to 5 stars.');$('stars').querySelector('[data-star]').focus();return;}
+ if(!selectedNotes.size&&!details){toast('Select at least one quick note or add some details.');return;}
+
  if(liveMode && syntheticDemo){
   const report={id:`demo_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
     restaurantId,cancelled,minutes,rating:selectedRating,
@@ -257,7 +278,7 @@ function submitPublic(e){e.preventDefault();const restaurantId=+$('audit-restaur
     submission_source:'BROWSER DEMO ONLY',submitted_at:report.createdAt});
   $('audit-form').reset();$('audit-restaurant')._bpClear?.();selectedNotes.clear();
   document.querySelectorAll('[data-note]').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-pressed','false');});
-  setRating(5);updateCancelled();renderPublicReviews();showSubmissionConfirmation(report,restaurant,stored);
+  setRating(0);updateCancelled();renderPublicReviews();showSubmissionConfirmation(report,restaurant,stored);
   return;
  }
  if(liveMode){
@@ -281,7 +302,7 @@ function submitPublic(e){e.preventDefault();const restaurantId=+$('audit-restaur
      const r=state.restaurants.find(x=>x.id===restaurantId);
      $('audit-form').reset();$('audit-restaurant')._bpClear?.();selectedNotes.clear();
      document.querySelectorAll('[data-note]').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-pressed','false');});
-     setRating(5);updateCancelled();
+     setRating(0);updateCancelled();
      showSubmissionConfirmation(report,r,true);
      try{await window.BluePlateBridge.refreshPublicReviews();}
      catch(error){toast(`Report saved, but the recent-report list could not refresh: ${error.message}`);}
@@ -297,7 +318,7 @@ function submitPublic(e){e.preventDefault();const restaurantId=+$('audit-restaur
  }
  const report={id:`report_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,restaurantId,cancelled,minutes,rating:selectedRating,notes:[...selectedNotes].join(', ')+(details?(selectedNotes.size?' · '+details:details):''),createdAt:new Date().toISOString()};
  const list=safeRead(REPORT_KEY);list.unshift(report);const stored=safeWrite(REPORT_KEY,list.slice(0,200));const r=state.restaurants.find(x=>x.id===restaurantId);r.userReviews.unshift({user:'Campus guest',mins:minutes,rating:selectedRating,cancelled,note:report.notes,time:'Just now'});if(cancelled)r.cancellationProxyPct+=3.5;
- $('audit-form').reset();$('audit-restaurant')._bpClear?.();selectedNotes.clear();document.querySelectorAll('[data-note]').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-pressed','false');});setRating(5);updateCancelled();renderPublicReviews();showSubmissionConfirmation(report,r,stored);}
+ $('audit-form').reset();$('audit-restaurant')._bpClear?.();selectedNotes.clear();document.querySelectorAll('[data-note]').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-pressed','false');});setRating(0);updateCancelled();renderPublicReviews();showSubmissionConfirmation(report,r,stored);}
 function renderPublicReviews(){
  if(liveMode){
   const box=$('recent-reviews');

@@ -14,6 +14,7 @@ async function test({production = false} = {}) {
   let ids = 0;
   let formTokens = 0;
   let challengeToken = '';
+  let outcome = 'no';
   let resets = 0;
   const messages = [];
   const requests = [];
@@ -25,7 +26,8 @@ async function test({production = false} = {}) {
   const feed = {};
   const elements = {
     'audit-restaurant': {value: '1'},
-    'audit-minutes': {value: '23'},
+    'audit-minutes': {value: '23', focus() {}},
+    stars: {querySelector: () => ({focus() {}})},
     'audit-details': details,
     'audit-form': {querySelector: () => button, reset() {}},
     'recent-reviews': feed,
@@ -34,12 +36,12 @@ async function test({production = false} = {}) {
     readyState: 'complete',
     body: {dataset: {page: 'public', liveRequired: String(production)}},
     getElementById: id => elements[id],
-    createElement: () => ({}),
+    createElement: () => ({clientWidth: 260}),
     head: {append(script) {
       assert.equal(script.src, 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit');
       script.onload();
     }},
-    querySelector: () => ({value: 'no'}),
+    querySelector: () => outcome ? {value: outcome} : null,
     querySelectorAll: () => [],
   };
   const window = {
@@ -47,6 +49,7 @@ async function test({production = false} = {}) {
       render(panel, config) {
         assert.equal(config.sitekey, 'mock-site-key');
         assert.equal(config.action, 'blueplate_guest_report');
+        assert.equal(config.size, 'compact');
         return 'widget';
       },
       getResponse(widget) { assert.equal(widget, 'widget'); return challengeToken; },
@@ -107,7 +110,26 @@ async function test({production = false} = {}) {
     return flush();
   }
 
+  outcome = null;
+  await submit();
+  assert.match(messages.at(-1), /Choose Delivered or Cancelled/);
+  outcome = 'no';
+  elements['audit-minutes'].value = '';
+  await submit();
+  assert.match(messages.at(-1), /between 1 and 240/);
+  elements['audit-minutes'].value = '23';
+  context.selectedRating = 0;
+  await submit();
+  assert.match(messages.at(-1), /Choose a rating/);
+  context.selectedRating = 5;
+  details.value = '';
+  await submit();
+  assert.match(messages.at(-1), /Select at least one quick note/);
+  details.value = 'Original private note';
+  assert.equal(requests.length, 0, 'Incomplete choices must not send a report');
+
   if (production) {
+    challengeToken = '';
     await submit(false);
     assert.match(messages.at(-1), /Complete the report verification challenge/);
     assert.equal(requests.length, 0);
@@ -127,7 +149,10 @@ async function test({production = false} = {}) {
   await submit();
   assert.match(messages.at(-1), /409/);
   details.value = 'Edited private note';
+  outcome = 'yes';
   await submit();
+  assert.equal(requests.at(-1).order_was_cancelled, true);
+  assert.equal(requests.at(-1).actual_observed_delivery_mins, null);
   assert.equal(confirmations.length, 2);
   assert.deepEqual(requests.map(row => row.client_submission_id),
     ['uuid-1', 'uuid-1', 'uuid-1', 'uuid-2', 'uuid-3']);

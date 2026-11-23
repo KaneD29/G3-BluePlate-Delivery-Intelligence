@@ -279,3 +279,20 @@ html[data-theme='dark'] .bp-action-suggestions,html[data-theme='dark'] .bp-actio
 .bp-directory-coverage p{font-size:11px;color:var(--muted);margin:14px 0 0;line-height:1.5}
 .bp-chart-data-fallback{display:flex;align-items:center;justify-content:center;height:100%;padding:18px;text-align:center;color:var(--muted);font-size:12px;line-height:1.9}
 @media(max-width:850px){.bp-coverage-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.workflow-nav{display:flex;flex-wrap:wrap;gap:8px 16px}
+.workflow-nav a,.methodology-links a{color:var(--blue);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.workflow-nav a{white-space:nowrap}
+.methodology{margin:24px 0;padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--paper);scroll-margin-top:105px}
+.methodology summary{cursor:pointer;font-weight:700}
+.methodology li+li{margin-top:8px}
+.methodology-links{display:flex;flex-wrap:wrap;gap:8px 16px}
+@media(max-width:600px){
+ .topbar{height:auto;min-height:69px}
+ .topbar-inner{flex-wrap:wrap;gap:8px;padding-block:8px}
+ .workflow-nav{order:3;flex-basis:100%}
+ .workflow-nav a{padding-block:5px}
+ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .kpi,.bp-period-tabs button{min-width:0;overflow-wrap:anywhere}
+ .bp-period-tabs{min-width:0}
+}
