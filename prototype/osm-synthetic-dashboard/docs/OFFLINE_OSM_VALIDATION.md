@@ -62,6 +62,24 @@ Browser verification confirmed:
 
 The existing guest-submission and manager-action settings were preserved. No fabricated user reports or alert events were inserted.
 
+## Step 7.7B staging review
+
+An OSM import seeds the status of a new restaurant and refreshes metadata on an existing restaurant without changing its stored status. An authorized operator owns subsequent status decisions. Keep the evidence, approval, and date of each decision in the staging review record and apply approved changes through a separate, restricted warehouse maintenance process. The public guest API has no status mutation. Keep the existing restaurant key and canonical OSM type/ID so reports remain linked to the same record.
+
+| Review item | Restaurant key and OSM identity | Action before staging |
+|---|---|---|
+| Callows Burger candidate duplicate | `32` / `osm_node_4262163137` and `46` / `osm_node_4580489293` | Pins are about 3 m apart and one address is a placeholder. Verify the physical storefront and both source features. Retain both IDs pending review. |
+| 45 Burger | `34` / `osm_node_4352517498` | Verify the recorded permanent closure independently. |
+| Cafe Khivan | `40` / `osm_node_4376695989` | Verify the recorded permanent closure independently. |
+| Tori Box | `29` / `osm_node_3951630073` | Verify this location's recorded permanent closure independently. |
+| TORI BOX | `65` / `osm_node_6013021586` | Verify this location's recorded permanent closure independently. |
+
+All four closure statuses are recorded in the warehouse and await independent confirmation. The bundled extract still contains food-service tags for their OSM features. An OSM amenity tag and the collector's default `OPERATIONAL` value provide no independent evidence of current trading.
+
+The original validation above reflects the node-only offline implementation used for that run. Step 7.7A matched the current offline parser's 116 nodes and seven closed ways to 123 warehouse records. Live Overpass still hardcodes 1,000 m and requests nodes only. The configuration defaults to 1,500 m, and the offline validator currently uses its own fixed 1.5 km cut-off for nodes and closed ways. The bundled rectangular extract covers only part of that radius. The seven way records are within 1,000 m by their representative coordinates, so changing the radius alone would leave the element-type difference.
+
+Before any coverage change, agree on one radius and an element-type policy, use the approved configured radius consistently, and compare the resulting IDs and modeled venue-day counts in an isolated environment. If live closed ways are approved, define how their representative points are calculated and review nearby node/way pairs. A venue missing from one source does not establish closure. Step 7.7B leaves collection scope unchanged.
+
 ## Modeled values and limitations
 
 Names, coordinates and available address/cuisine tags come from OSM. Demand (25 per venue/day), ETA, cancellation risk and fee assumptions remain model estimates. The daily modeled demand total is 2,900; it is **not observed orders**. The tested trend mean was 15.64 modeled minutes and a 3.36 risk index.

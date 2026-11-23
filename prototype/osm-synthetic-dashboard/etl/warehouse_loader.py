@@ -114,6 +114,8 @@ def run_etl_pipeline(fetcher=fetch_ust_eateries_osm_overpass, *, offline_sha256=
                 raise RuntimeError(f"Missing seeded UST zone {enrich['zone_code']}")
             zone_key = row["zone_key"]
 
+            # OSM can seed status for a new venue. Existing status is owned by
+            # operators and must survive metadata refreshes.
             cursor.execute(
                 """INSERT INTO dim_restaurant (
                     external_place_id, restaurant_name, zone_key, primary_cuisine_key,
@@ -127,7 +129,6 @@ def run_etl_pipeline(fetcher=fetch_ust_eateries_osm_overpass, *, offline_sha256=
                     longitude=VALUES(longitude),
                     zone_key=VALUES(zone_key),
                     primary_cuisine_key=VALUES(primary_cuisine_key),
-                    operational_status=VALUES(operational_status),
                     distance_to_ust_km=VALUES(distance_to_ust_km)""",
                 (
                     place["external_place_id"], place["restaurant_name"], zone_key,
