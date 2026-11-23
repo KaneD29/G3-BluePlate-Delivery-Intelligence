@@ -141,6 +141,17 @@
     if (!demoEnabled) {
       const pending = ++coverageRevision;
       const initialRevision = revision;
+      app.setGuestReportDate(undefined);
+      // The coverage endpoint counts every report source. The existing public
+      // feed supplies a guest-only date without changing the dashboard filter.
+      const limit = 50;
+      request(`/api/user/reviews?limit=${limit}`).then(data => {
+        if (pending !== coverageRevision || data.status !== 'ok' || !Array.isArray(data.reviews)) return;
+        const guest = data.reviews.find(row => row?.submission_source === 'GUEST');
+        const date = dateOnly(guest?.submitted_at);
+        if (/^\d{4}-\d\d-\d\d$/.test(date)) app.setGuestReportDate(date);
+        else if (!guest && data.reviews.length < limit) app.setGuestReportDate(null);
+      }).catch(() => {});
       let warehouseDate, reportDate;
       try {
         const coverage = await request('/api/dashboard/coverage');

@@ -11,7 +11,7 @@ const latest = '2020-11-15';
 const range = value => JSON.parse(JSON.stringify(value));
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-function start({demo = false, staticSite = false, failCoverage = false, liveRequired = false, failHealth = false, failSession = false, failOverview = false, now = "2026-11-23T12:00:00Z"} = {}) {
+function start({demo = false, staticSite = false, failCoverage = false, failGuestFeed = false, liveRequired = false, failHealth = false, failSession = false, failOverview = false, now = "2026-11-23T12:00:00Z"} = {}) {
   const calls = [];
   const updates = [];
   const errors = [];
@@ -22,6 +22,10 @@ function start({demo = false, staticSite = false, failCoverage = false, liveRequ
   const elements = {
     overview: {querySelector: () => ({insertAdjacentElement() {}})},
     'bp-period-caption': {},
+    'bp-view-freshness': {},
+    'bp-warehouse-date': {},
+    'bp-latest-guest-date': {},
+    'bp-dashboard-loaded-at': {},
     'simulate-refresh': {},
     'bp-latest-period': buttons[0],
     'bp-latest-report-period': buttons[1],
@@ -41,6 +45,7 @@ function start({demo = false, staticSite = false, failCoverage = false, liveRequ
   let reportTotals = {auditor_report_count: 0};
   let restaurants = [{restaurant_key: 1, restaurant_name: 'Directory listing'}];
   let days = [];
+  let guestFeed = [];
   const window = {BluePlateSynthetic: {metrics: row => row, alerts: () => [], trend: () => []}};
   const context = vm.createContext({
     window, document, liveRequired, $: id => elements[id],
@@ -63,6 +68,10 @@ function start({demo = false, staticSite = false, failCoverage = false, liveRequ
         if (failCoverage) throw new Error('Coverage unavailable');
         data = {status: 'ok', ...(refreshedCoverage ?? await coverage)};
       }
+      if (url === '/api/user/reviews?limit=50') {
+        if (failGuestFeed) throw new Error('Guest feed unavailable');
+        data = {status: 'ok', reviews: guestFeed};
+      }
       if (url.startsWith('/api/dashboard/overview?')) {
         if (failOverview) throw new Error('Database unavailable');
         data = {restaurants, report_totals: reportTotals};
@@ -76,13 +85,13 @@ function start({demo = false, staticSite = false, failCoverage = false, liveRequ
   });
   const fields = source.slice(source.indexOf("let periodPreset="), source.indexOf('const liveNumber='));
   const periods = source.slice(source.indexOf('function localDay('), source.indexOf('// ----- Restaurant detail view'));
-  const coverageMethod = source.slice(source.indexOf(' setReportingCoverage('), source.indexOf(' setPublic(restaurants)'));
+  const coverageMethod = source.slice(source.indexOf(' setGuestReportDate('), source.indexOf(' setPublic(restaurants)'));
   vm.runInContext(fields + periods + `
     window.BluePlateApp = {
       ${coverageMethod}
       getRange: currentRange,
       activateLive({demoEnabled}) { liveMode = true; syntheticDemo = demoEnabled; },
-      setAdmin(data) { updates.push(data); liveHasObservations = data.hasObservations; renderPeriodCaption(); },
+      setAdmin(data) { updates.push(data); liveHasObservations = data.hasObservations; dashboardLoadedAt = new Date(); renderPeriodCaption(); },
       showError(message) { errors.push(message); }
     };
     initPeriodToolbar();
@@ -103,6 +112,8 @@ function start({demo = false, staticSite = false, failCoverage = false, liveRequ
     active: () => buttons.find(button => button['aria-pressed'] === 'true').dataset.period,
     click: period => buttons.find(button => button.dataset.period === period).onclick(),
     caption: () => elements['bp-period-caption'].textContent,
+    freshness: () => ['bp-warehouse-date','bp-latest-guest-date','bp-dashboard-loaded-at'].map(id=>elements[id].textContent),
+    setGuestFeed: rows => { guestFeed = rows; },
     setReports: count => {
       reportTotals = {auditor_report_count: count * 2};
       const venue = {...restaurants[0], street_address: 'UST', auditor_report_count: count,
@@ -116,7 +127,7 @@ function start({demo = false, staticSite = false, failCoverage = false, liveRequ
 
 function testUnavailableRendering() {
   const start = source.indexOf('function renderAdmin(){');
-  const end = source.indexOf('function renderDirectoryCoverage()', start);
+  const end = source.indexOf('function renderDirectoryCoverage(', start);
   const elements = Object.fromEntries([
     'executive-summary', 'kpis', 'alerts-list', 'directory-rows',
     'restaurant-count', 'filter-summary', 'bp-directory-coverage'
@@ -144,8 +155,10 @@ async function test() {
   await tick();
   assert.deepEqual(dashboard.overviewCalls(), [`/api/dashboard/overview?from=${latest}&to=${latest}`]);
   assert.equal(dashboard.active(), 'latest');
-  assert.match(dashboard.caption(), /Latest MySQL reporting date 2020-11-15/);
-  assert.match(dashboard.caption(), /modeled estimates/);
+  assert.equal(dashboard.freshness()[0], '2020-11-15');
+  assert.equal(dashboard.freshness()[1], 'No guest reports yet');
+  assert.notEqual(dashboard.freshness()[2], 'Not available');
+  assert.match(dashboard.caption(), /^Modeled warehouse snapshot · 2020-11-15/);
   assert.equal(dashboard.updates[0].hasObservations, true);
 
   dashboard.setDays([]);
@@ -153,7 +166,7 @@ async function test() {
   await tick();
   assert.equal(dashboard.range().to, dashboard.initialRange.to);
   assert.equal(dashboard.updates.at(-1).restaurants.length, 1);
-  assert.match(dashboard.caption(), /No analytics records or auditor reports for the selected period/);
+  assert.match(dashboard.caption(), /No warehouse estimates or student reports for this period/);
   dashboard.setReports(1);
   const countBeforeDraft = dashboard.overviewCalls().length;
   dashboard.click('custom');
@@ -165,7 +178,7 @@ async function test() {
   await tick();
   assert.deepEqual(dashboard.range(), {from: dashboard.initialRange.from, to: dashboard.initialRange.from});
   assert.equal(dashboard.updates.at(-1).hasObservations, true);
-  assert.doesNotMatch(dashboard.caption(), /No analytics records or auditor reports/);
+  assert.doesNotMatch(dashboard.caption(), /No warehouse estimates or student reports/);
   const reportUpdate = dashboard.updates.at(-1);
   assert.equal(reportUpdate.restaurants.length, 1, 'Directory deduplication still applies');
   assert.equal(reportUpdate.reportTotals.auditor_report_count, 2, 'All submitted reports count even across duplicate listings');
@@ -177,14 +190,17 @@ async function test() {
   await tick();
   assert.equal(independentDates.active(), 'latest');
   assert.deepEqual(independentDates.range(), {from: '2026-11-15', to: '2026-11-15'});
-  assert.match(independentDates.caption(), /2026-11-22 .*Manila submission date/);
+  independentDates.setGuestFeed([{submission_source:'AUTHENTICATED',submitted_at:'2026-11-23T08:00:00+08:00'},
+    {submission_source:'GUEST',submitted_at:'2026-11-22T00:10:00+08:00'}]);
   independentDates.click('latest-report');
   await tick();
   assert.deepEqual(independentDates.range(), {from: '2026-11-22', to: '2026-11-22'});
   await independentDates.refresh('2026-11-16', '2026-11-23');
   assert.equal(independentDates.active(), 'latest-report');
   assert.deepEqual(independentDates.range(), {from: '2026-11-23', to: '2026-11-23'});
-  assert.match(independentDates.caption(), /Latest MySQL reporting date 2026-11-16/);
+  assert.equal(independentDates.freshness()[0], '2026-11-16');
+  assert.equal(independentDates.freshness()[1], '2026-11-22');
+  assert.match(independentDates.caption(), /^Student-reported feedback · 2026-11-23/);
   assert.equal(independentDates.calls.filter(url => url === '/api/dashboard/coverage').length, 2);
   independentDates.click('latest');
   await tick();
@@ -207,7 +223,7 @@ async function test() {
   assert.equal(race.overviewCalls().length, 1);
   assert.equal(race.active(), '90d');
   assert.equal(race.range().to, race.initialRange.to);
-  assert.match(race.caption(), /Latest MySQL reporting date 2020-11-15/);
+  assert.equal(race.freshness()[0], '2020-11-15');
 
   const earlyChoice = start();
   earlyChoice.click('30d');
@@ -221,14 +237,24 @@ async function test() {
   noHistory.resolveCoverage(null);
   await tick();
   assert.deepEqual(noHistory.range(), noHistory.initialRange);
-  assert.match(noHistory.caption(), /No dated analytics available in MySQL/);
+  assert.equal(noHistory.freshness()[0], 'Not available');
   assert.equal(noHistory.updates[0].hasObservations, false);
 
   const unavailable = start({failCoverage: true});
   await tick();
   assert.deepEqual(unavailable.range(), unavailable.initialRange);
-  assert.match(unavailable.caption(), /MySQL reporting date unavailable/);
+  assert.equal(unavailable.freshness()[0], 'Not available');
   assert.deepEqual(unavailable.errors, []);
+  const failedFeed = start({failGuestFeed:true});
+  failedFeed.resolveCoverage(latest);
+  await tick();
+  assert.equal(failedFeed.freshness()[1], 'Not available');
+  assert.equal(failedFeed.updates.length, 1, 'Guest feed failure must not block the dashboard');
+  const cappedFeed = start();
+  cappedFeed.setGuestFeed(Array.from({length:50},()=>({submission_source:'AUTHENTICATED',submitted_at:'2026-11-23T08:00:00+08:00'})));
+  cappedFeed.resolveCoverage(latest,'2026-11-23');
+  await tick();
+  assert.equal(cappedFeed.freshness()[1], 'Not available', 'A capped feed cannot prove zero guest reports');
 
   const outageCases = [
     [{failHealth: true}, 'Health unavailable'],

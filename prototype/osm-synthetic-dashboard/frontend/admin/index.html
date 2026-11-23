@@ -16,10 +16,14 @@
         <img src="../assets/blueplate-original-logo.png" alt="BluePlate logo">
         <div><strong>BluePlate</strong><span>DELIVERY INTELLIGENCE · UST MANILA</span></div>
       </a>
-      <nav class="workflow-nav" aria-label="BluePlate workflows"><a data-flask-home href="../index.html">Submit a Report</a><a data-flask-dashboard href="./index.html">BI Dashboard</a></nav><div class="top-actions">
+      <nav class="workflow-nav" aria-label="BluePlate workflows">
+        <a data-flask-home href="../index.html">Submit a Report</a>
+        <a data-flask-dashboard href="./index.html" aria-current="page">BI Dashboard</a>
+      </nav>
+      <div class="top-actions">
         <span class="header-chip">Admin demo</span>
         <div class="settings-anchor">
-          <button id="settings-button" class="icon-button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" title="Settings">
+          <button id="settings-button" class="icon-button" aria-label="Settings" aria-controls="settings-popover" aria-expanded="false" title="Settings">
             <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .35 1.9l.05.05-2 2-.06-.05a1.7 1.7 0 0 0-1.85-.34 1.7 1.7 0 0 0-1.05 1.54V21H9.2v-.1a1.7 1.7 0 0 0-1.04-1.54 1.7 1.7 0 0 0-1.85.34l-.06.06-2-2 .05-.06A1.7 1.7 0 0 0 4.65 15 1.7 1.7 0 0 0 3.1 14H3v-4h.1A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.35-1.9l-.05-.05 2-2 .06.05A1.7 1.7 0 0 0 8.16 5 1.7 1.7 0 0 0 9.2 3.5V3h5.6v.5A1.7 1.7 0 0 0 15.84 5a1.7 1.7 0 0 0 1.85-.34l.06-.06 2 2-.05.06a1.7 1.7 0 0 0-.35 1.9A1.7 1.7 0 0 0 20.9 10h.1v4h-.1A1.7 1.7 0 0 0 19.4 15Z"/></svg>
           </button>
           <div id="settings-popover" class="settings-popover hidden">
@@ -30,6 +34,16 @@
               <button type="button" data-theme-choice="system">System</button>
             </div>
             <p class="settings-foot">Theme preference is saved in this browser.</p>
+          <nav class="settings-resources" aria-labelledby="settings-resources-heading">
+            <h3 id="settings-resources-heading">About &amp; Resources</h3>
+            <ul>
+            <li><a href="#data-methodology">Data &amp; Methodology</a></li>
+            <li><a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/tree/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database">SQL Schema Directory<span class="settings-external" aria-hidden="true">↗</span></a></li>
+            <li><a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/blob/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database/06_v8_oltp_migration.sql">Database Migration<span class="settings-external" aria-hidden="true">↗</span></a></li>
+            <li><a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/blob/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database/07_v8_daily_analytics_view.sql">Daily BI View<span class="settings-external" aria-hidden="true">↗</span></a></li>
+            <li><a href="../#report-form-section">Privacy &amp; Data Use</a></li>
+            </ul>
+          </nav>
           </div>
         </div>
       </div>
@@ -62,13 +76,14 @@
         <div class="page-heading">
           <div>
             <h1>Campus delivery operations</h1>
-            <p id="executive-summary">Insights into restaurant performance, delivery trends, and operational risk around UST Manila.</p>
+            <p id="executive-summary">Warehouse estimates and student delivery reports for UST Manila.</p>
           </div>
           <div class="page-actions">
             <button type="button" class="btn secondary" id="simulate-refresh">Simulate refresh</button>
           </div>
         </div>
         <div id="kpis" class="kpis"></div>
+        <details id="bp-directory-coverage" class="bp-directory-coverage" hidden></details>
       </section>
 
       <section id="insights">
@@ -113,7 +128,6 @@
           </div>
         </div>
         <div id="alerts-list" class="alert-list"></div>
-        <div id="bp-directory-coverage" class="bp-directory-coverage" hidden></div>
 
         <!-- local-manager:start -->
         <div class="section-head">
@@ -147,7 +161,6 @@
           <div class="directory-toolbar">
             <div>
               <h3>UST merchants <span id="restaurant-count" class="sort-desc"></span></h3>
-              <p>Click search, sort, or filter to refine the directory.</p>
             </div>
             <div class="tools">
               <button type="button" class="icon-button" id="open-search" title="Search (⌘/Ctrl + F)" aria-label="Search restaurants" aria-expanded="false">
@@ -208,14 +221,15 @@
             </button>
           </div>
           <div class="filter-summary" id="filter-summary">Sorted by distance · closest first</div>
-          <div class="table-wrap">
+          <p id="bp-directory-scroll-hint" class="bp-directory-scroll-hint">Scroll across the table to see all columns.</p>
+          <div class="table-wrap" role="region" aria-label="Restaurant results table" aria-describedby="bp-directory-scroll-hint" tabindex="0">
             <table>
               <thead>
                 <tr>
                   <th>Restaurant</th>
                   <th>Zone & gate</th>
                   <th>Distance</th>
-                  <th>Typical price</th>
+                  <th>Modeled menu price</th>
                   <th>Delivery ETA</th>
                   <th>Risk index</th>
                   <th>Rating</th>
@@ -225,21 +239,31 @@
               <tbody id="directory-rows"></tbody>
             </table>
           </div>
+          <nav class="bp-directory-pagination" id="bp-directory-pagination" aria-label="Restaurant directory pages" hidden>
+            <button type="button" class="btn secondary" id="bp-directory-prev" aria-controls="directory-rows">Previous</button>
+            <p id="bp-directory-position" role="status" aria-atomic="true"></p>
+            <button type="button" class="btn secondary" id="bp-directory-next" aria-controls="directory-rows">Next</button>
+          </nav>
         </div>
       </section>
 
-      <details id="data-methodology" class="methodology" open>
+      <details id="data-methodology" class="methodology" tabindex="-1" open>
         <summary>Data &amp; Methodology</summary>
         <ul>
           <li><strong>Restaurant inventory.</strong> Venue names and locations come from OpenStreetMap (ODbL).
             Address and cuisine coverage depend on the available tags. <a href="https://www.openstreetmap.org/copyright">OSM attribution</a></li>
-          <li><strong>Modeled warehouse estimates.</strong> ETA combines modeled travel time, cuisine-based preparation time,
-            and four minutes for handoff. Demand assumes 25 orders per venue-day. Cancellation risk is a distance-based index in points.</li>
-          <li><strong>Self-reported observations.</strong> Student reports are a self-selected sample. Completed-delivery averages use
+          <li><strong>Modeled warehouse estimates.</strong> ETA combines estimated travel time, cuisine-based preparation time,
+            and four minutes for handoff. Demand assumes 25 orders per restaurant per day. These estimates are separate from actual orders
+            and student reports. Cancellation risk is a distance-based index in points. The menu price column shows modeled averages when available.</li>
+          <li><strong>Warehouse ratings.</strong> The sample count is the number of dates with an eligible warehouse rating for that restaurant.
+            A date qualifies when it has a review count above zero and a rating from 1 to 5.</li>
+          <li><strong>Self-reported observations.</strong> Student reports are a self-selected sample. Small samples describe those reports only.
+            Completed-delivery averages use
             completed reports with valid minutes. Self-reported cancellation share is cancelled reports divided by reports with a known outcome.
             A zero denominator gives an unavailable share. Report dates are Manila submission dates.</li>
-          <li><strong>Refresh and ETL.</strong> Refresh reloads the dashboard and its dates. An operator runs OSM ingestion and generates
-            warehouse estimates separately.</li>
+          <li><strong>Dates and reloads.</strong> The warehouse date identifies the data snapshot. The latest guest date comes from the 50 most recent public reports.
+            The Latest report date filter includes all stored submission types. The view-loaded time is when your browser received the dashboard data.
+            Reload dashboard data requests another view of existing records. ETL runs separately, and its execution time is unavailable on this dashboard.</li>
         </ul>
         <nav class="methodology-links" aria-label="Read-only SQL sources">
           <a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/tree/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database">SQL schema directory</a>

@@ -19,6 +19,8 @@ let selectedRating=0;
 const selectedNotes=new Set();
 let charts=[];
 let sortBy='default';
+const DIRECTORY_PAGE_SIZE=10;
+let directoryPage=1;
 let activeNav='overview';
 let scrollPending=false;
 let periodPreset='7d';
@@ -28,6 +30,8 @@ let manualPeriodSelected=false;
 let customPeriodDraft=false;
 let latestReportingDate;
 let latestReportSubmissionDate;
+let latestGuestReportDate;
+let dashboardLoadedAt=null;
 let liveHasObservations=null;
 let liveReportTotals={};
 let modeledHistory=new Map();
@@ -38,6 +42,7 @@ let liveReports=[];
 let liveTrend=[];
 let liveGuestEnabled=false;
 let pendingGuestReport;
+let guestSubmissionPending=false;
 let guestRetryAt=0;
 let liveError=liveRequired?'Connecting to the live warehouse…':'';
 const liveNumber=value=>value===null||value===undefined||value===''?null:(Number.isFinite(Number(value))?Number(value):null);
@@ -48,8 +53,53 @@ function safeRead(key) {try {return JSON.parse(localStorage.getItem(key))||[];}c
 function safeWrite(key,items) {try {localStorage.setItem(key,JSON.stringify(items));return true;} catch(e){return false;}}
 function toast(message){const el=document.createElement('div');el.className='toast';const span=document.createElement('span');span.textContent=message;const x=document.createElement('button');x.type='button';x.textContent='×';x.setAttribute('aria-label','Dismiss notification');x.onclick=()=>el.remove();el.append(span,x);$('toasts').append(el);setTimeout(()=>el.remove(),5000);}
 function currentThemeChoice(){try{return localStorage.getItem(THEME_KEY)||'system';}catch(e){return 'system';}}
-function applyTheme(value,save=true){const dark=value==='dark'||(value==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=dark?'dark':'light';if(save){try{localStorage.setItem(THEME_KEY,value);}catch(e){}}document.querySelectorAll('[data-theme-choice]').forEach(b=>b.classList.toggle('active',b.dataset.themeChoice===value)); if(page==='admin') refreshCharts();}
-function initSettings(){const toggle=$('settings-button'),pop=$('settings-popover');toggle.onclick=e=>{e.stopPropagation();const show=pop.classList.contains('hidden');pop.classList.toggle('hidden',!show);toggle.setAttribute('aria-expanded',String(show));};document.querySelectorAll('[data-theme-choice]').forEach(btn=>btn.addEventListener('click',()=>{applyTheme(btn.dataset.themeChoice);pop.classList.add('hidden');toggle.setAttribute('aria-expanded','false');}));document.addEventListener('click',e=>{if(!e.target.closest('.settings-anchor')){pop.classList.add('hidden');toggle.setAttribute('aria-expanded','false');}});document.addEventListener('keydown',e=>{if(e.key==='Escape'){pop.classList.add('hidden');toggle.setAttribute('aria-expanded','false');if(page==='admin')closePopups();}});applyTheme(currentThemeChoice(),false);const media=window.matchMedia('(prefers-color-scheme: dark)');media.addEventListener?.('change',()=>{if(currentThemeChoice()==='system')applyTheme('system',false);});}
+function applyTheme(value,save=true){
+ const dark=value==='dark'||(value==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+ document.documentElement.dataset.theme=dark?'dark':'light';
+ if(save){try{localStorage.setItem(THEME_KEY,value);}catch(e){}}
+ document.querySelectorAll('[data-theme-choice]').forEach(button=>{
+  const selected=button.dataset.themeChoice===value;
+  button.classList.toggle('active',selected);
+  button.setAttribute('aria-pressed',String(selected));
+ });
+ if(page==='admin')refreshCharts();
+}
+function initSettings(){
+ const toggle=$('settings-button'),popover=$('settings-popover');
+ const isOpen=()=>!popover.classList.contains('hidden');
+ const setOpen=(open,returnFocus=false)=>{
+  popover.classList.toggle('hidden',!open);
+  toggle.setAttribute('aria-expanded',String(open));
+  if(returnFocus)toggle.focus();
+ };
+ toggle.onclick=()=>setOpen(!isOpen());
+ popover.querySelectorAll('[data-theme-choice]').forEach(button=>button.addEventListener('click',()=>{
+  applyTheme(button.dataset.themeChoice);
+  setOpen(false,true);
+ }));
+ popover.addEventListener('click',event=>{
+  const link=event.target.closest('a');
+  if(!link)return;
+  if(link.hash==='#data-methodology'&&link.pathname===location.pathname&&link.origin===location.origin){
+   $('data-methodology').open=true;
+  }
+  setOpen(false);
+  if(link.hash==='#report-form-section'&&link.pathname===location.pathname&&link.origin===location.origin){
+   requestAnimationFrame(openReportPrivacy);
+  }
+ });
+ document.addEventListener('click',event=>{
+  if(isOpen()&&!event.target.closest('.settings-anchor'))setOpen(false);
+ });
+ document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  if(isOpen())setOpen(false,true);
+  if(page==='admin')closePopups();
+ });
+ applyTheme(currentThemeChoice(),false);
+ const media=window.matchMedia('(prefers-color-scheme: dark)');
+ media.addEventListener?.('change',()=>{if(currentThemeChoice()==='system')applyTheme('system',false);});
+}
 function hydrate(){// Browser-local shared demo state. It is not shared across devices.
  const reports=safeRead(REPORT_KEY);for(const report of reports){const r=state.restaurants.find(x=>x.id===Number(report.restaurantId));if(!r)continue;r.userReviews.unshift({mins:report.minutes===null?null:Number(report.minutes),rating:Number(report.rating),cancelled:!!report.cancelled,note:String(report.notes||''),user:'Campus guest',time:'Recent report',id:report.id});if(report.cancelled)r.cancellationProxyPct=Math.min(100,Number((r.cancellationProxyPct+3.5).toFixed(1)));}
  const notes=safeRead(NOTE_KEY);for(const n of notes){state.managerNotes.unshift({zone:String(n.zone),text:String(n.text),author:'Admin demo',time:'Recently added'});} }
@@ -93,8 +143,6 @@ function reviews(){const out=[];for(const r of state.restaurants){for(const rev 
 function initPublic(){const select=$('audit-restaurant');select.innerHTML='<option value="" disabled selected>Choose a restaurant</option>'+state.restaurants.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(r=>`<option value="${r.id}">${html(r.name)} · ${html(r.branch)}</option>`).join('');
  initRestaurantAutocomplete();
  initSubmissionConfirmation();
- const texts=['On time','Arrived early','Late delivery','Friendly rider','Easy gate pickup','Difficult pickup','Fresh and hot','Food arrived cold','Well packaged','Spilled food','Missing item','Wrong order','Good value','Price felt high','Long preparation','Order was cancelled'];
- $('quick-notes').innerHTML=texts.map((label,i)=>`<button type="button" class="tag" data-note="${html(label)}" aria-pressed="false">${html(label)}</button>`).join('');
  $('quick-notes').addEventListener('click',e=>{const b=e.target.closest('[data-note]');if(!b)return;const val=b.dataset.note;if(selectedNotes.has(val))selectedNotes.delete(val);else selectedNotes.add(val);b.classList.toggle('selected',selectedNotes.has(val));b.setAttribute('aria-pressed',String(selectedNotes.has(val)));});
  $('stars').addEventListener('click',e=>{const b=e.target.closest('[data-star]');if(b)setRating(+b.dataset.star);});setRating(0);
  document.querySelectorAll('input[name="audit-cancelled"]').forEach(x=>x.onchange=updateCancelled);
@@ -128,7 +176,9 @@ function initRestaurantAutocomplete(){
  menu.setAttribute('role','listbox');
  menu.setAttribute('aria-label','Restaurant suggestions');
  const hint=document.createElement('p');
+ hint.id='bp-restaurant-hint';
  hint.className='bp-restaurant-hint';
+ input.setAttribute('aria-describedby',hint.id);
  hint.textContent='Type a name, cuisine, or UST street, then select a matching restaurant.';
  wrapper.append(input,menu,hint);
  select.insertAdjacentElement('afterend',wrapper);
@@ -235,12 +285,36 @@ function initRestaurantAutocomplete(){
 }
 
 function setRating(n){selectedRating=n;$('rating-value').value=n;document.querySelectorAll('[data-star]').forEach(b=>{b.classList.toggle('filled',Number(b.dataset.star)<=n);b.setAttribute('aria-pressed',String(Number(b.dataset.star)===n));});}
+function openReportPrivacy(){
+ const privacy=$('bp-report-privacy');
+ if(!privacy||privacy.hidden)return;
+ const details=$('bp-privacy-details');
+ details.open=true;
+ const summary=details.querySelector('summary');
+ summary.focus({preventScroll:true});
+ summary.scrollIntoView({block:'nearest'});
+}
+const quickNotesByOutcome={
+ no:['Fast delivery','Late delivery','Food arrived hot','Food arrived cold','Good packaging','Damaged packaging','Complete order','Missing items','Friendly rider','Other'],
+ yes:['Restaurant cancelled','Item unavailable','No rider available','Excessive waiting time','Customer cancelled','Payment issue','Other / Unknown']
+};
 function updateCancelled(){
  const outcome=document.querySelector('input[name="audit-cancelled"]:checked')?.value;
  const mins=$('audit-minutes');
  mins.required=outcome==='no';mins.disabled=outcome!=='no';
  $('minutes-hint').textContent=outcome==='yes'?'No delivery time is needed for a cancelled order.':
   outcome==='no'?'Enter 1–240 whole minutes from placing the order to delivery.':'Choose an order outcome first.';
+ const notes=$('quick-notes');
+ const noteOutcome=outcome||'';
+ if(notes.dataset.outcome===noteOutcome)return;
+ notes.dataset.outcome=noteOutcome;
+ selectedNotes.clear();
+ $('quick-notes-hint').textContent=outcome
+  ?'Choose quick notes or add a written detail.'
+  :'Choose an outcome to see quick notes, or add a written detail.';
+ notes.innerHTML=(quickNotesByOutcome[noteOutcome]||[]).map(label=>
+  `<button type="button" class="tag" data-note="${html(label)}" aria-pressed="false">${html(label)}</button>`
+ ).join('');
 }
 function guestPayload(report, submission) {
  const fingerprint=JSON.stringify(report);
@@ -248,20 +322,77 @@ function guestPayload(report, submission) {
    ? submission
    : {fingerprint, payload:{...report,client_submission_id:crypto.randomUUID()}};
 }
+function reportError(message, focus){
+ const error=$('bp-report-error');
+ error.textContent=message;
+ if(message)(focus||(()=>error.focus()))();
+}
+function setGuestSubmissionPending(pending){
+ guestSubmissionPending=pending;
+ const fields=$('bp-report-fields');
+ fields.disabled=pending;
+ fields.setAttribute('aria-busy',String(pending));
+ const button=$('audit-form').querySelector('[type="submit"]');
+ button.disabled=pending||!liveGuestEnabled;
+ button.textContent=pending?'Submitting…':liveGuestEnabled?'Submit report':'Reports temporarily disabled';
+ $('bp-report-progress').textContent=pending?'Sending your report.':'';
+}
+function guestSubmissionError(error){
+ if(error.status===429){
+  const seconds=Math.max(1,error.retryAfter||60);
+  guestRetryAt=Date.now()+seconds*1000;
+  return `Too many report attempts. Try again in ${seconds} seconds.`;
+ }
+ if(error.message==='Guest reports are disabled')return 'Guest reports are unavailable right now.';
+ if(error.message==='Complete the report verification challenge first.'||error.message==='Complete a new report verification challenge')
+  return 'Complete the report verification challenge, then try again.';
+ if(error.status===403)return 'Report verification failed. Try submitting again.';
+ if(error.status===409)return 'This retry conflicts with an earlier submission. Check Recent campus reports before trying again.';
+ if(error.status===400&&error.message==='Unknown or inactive restaurant_key')return 'This restaurant is no longer available for reporting. Choose another listing.';
+ if(error.status===400||error.status===413)return 'The report could not be accepted. Review your entries and try again.';
+ return 'We couldn’t confirm your submission. Your entries are still here. Retry with the same entries.';
+}
+async function submitGuestReport(report){
+ const remaining=Math.ceil((guestRetryAt-Date.now())/1000);
+ if(remaining>0){reportError(`Too many report attempts. Try again in ${remaining} seconds.`);return;}
+ if(!liveGuestEnabled){reportError('Guest reports are unavailable right now.');return;}
+ setGuestSubmissionPending(true);
+ let receipt;
+ try{
+  pendingGuestReport=guestPayload(report,pendingGuestReport);
+  receipt=await window.BluePlateBridge.submitReport(pendingGuestReport.payload);
+  if(!['created','replayed'].includes(receipt?.status)||!Number.isSafeInteger(receipt.user_review_id)||receipt.user_review_id<=0)
+   throw new Error('Missing report receipt');
+ }catch(error){
+  reportError(guestSubmissionError(error));
+  return;
+ }finally{
+  setGuestSubmissionPending(false);
+ }
+ pendingGuestReport=undefined;
+ $('audit-form').reset();$('audit-restaurant')._bpClear?.();selectedNotes.clear();
+ document.querySelectorAll('[data-note]').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-pressed','false');});
+ setRating(0);updateCancelled();
+ showSubmissionConfirmation(receipt);
+ try{await window.BluePlateBridge.refreshPublicReviews();}
+ catch{toast('Report saved. The recent-report list could not reload.');}
+}
 function submitPublic(e){
  e.preventDefault();
+ if(guestSubmissionPending)return;
+ reportError('');
  const restaurantId=+$('audit-restaurant').value;
  const outcome=document.querySelector('input[name="audit-cancelled"]:checked')?.value;
  const cancelled=outcome==='yes';
  const minutes=cancelled?null:Number($('audit-minutes').value);
  const details=$('audit-details').value.trim();
- if(!restaurantId){toast('Choose a restaurant from the suggestions first.');$('audit-restaurant')._bpFocus?.();return;}
- if(outcome!=='yes'&&outcome!=='no'){toast('Choose Delivered or Cancelled.');return;}
+ if(!restaurantId){reportError('Choose a restaurant from the suggestions.',()=>$('audit-restaurant')._bpFocus?.());return;}
+ if(outcome!=='yes'&&outcome!=='no'){reportError('Choose Delivered or Cancelled.',()=>document.querySelector('input[name="audit-cancelled"]').focus());return;}
  if(!cancelled&&(!Number.isInteger(minutes)||minutes<1||minutes>240)){
-  toast('Enter a delivery time between 1 and 240 whole minutes.');$('audit-minutes').focus();return;
+  reportError('Enter a delivery time between 1 and 240 whole minutes.',()=>$('audit-minutes').focus());return;
  }
- if(!selectedRating){toast('Choose a rating from 1 to 5 stars.');$('stars').querySelector('[data-star]').focus();return;}
- if(!selectedNotes.size&&!details){toast('Select at least one quick note or add some details.');return;}
+ if(!selectedRating){reportError('Choose a rating from 1 to 5 stars.',()=>$('stars').querySelector('[data-star]').focus());return;}
+ if(!selectedNotes.size&&!details){reportError('Select at least one quick note or add some details.',()=>$('audit-details').focus());return;}
 
  if(liveMode && syntheticDemo){
   const report={id:`demo_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
@@ -282,39 +413,12 @@ function submitPublic(e){
   return;
  }
  if(liveMode){
-  if(!liveGuestEnabled){toast('Guest reports are disabled.');return;}
-  const remaining=Math.ceil((guestRetryAt-Date.now())/1000);
-  if(remaining>0){toast(`Too many report attempts. Try again in ${remaining} seconds.`);return;}
-  const button=$('audit-form').querySelector('[type="submit"]');
-  const report={restaurantId,cancelled,minutes,rating:selectedRating,
-    notes:[...selectedNotes].join(', ')+(details?(selectedNotes.size?' · '+details:details):''),
-    createdAt:new Date().toISOString()};
-  if(button.disabled)return;
-  pendingGuestReport=guestPayload({
-    restaurant_key:restaurantId,rating_score:selectedRating,
-    order_was_cancelled:cancelled,actual_observed_delivery_mins:minutes,
-    comment_text:report.notes.trim()
-  },pendingGuestReport);
-  button.disabled=true;
-  window.BluePlateBridge.submitReport(pendingGuestReport.payload)
-   .then(async()=>{
-     pendingGuestReport=undefined;
-     const r=state.restaurants.find(x=>x.id===restaurantId);
-     $('audit-form').reset();$('audit-restaurant')._bpClear?.();selectedNotes.clear();
-     document.querySelectorAll('[data-note]').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-pressed','false');});
-     setRating(0);updateCancelled();
-     showSubmissionConfirmation(report,r,true);
-     try{await window.BluePlateBridge.refreshPublicReviews();}
-     catch(error){toast(`Report saved, but the recent-report list could not refresh: ${error.message}`);}
-   }).catch(error=>{
-     if(error.status===429){
-       const seconds=Math.max(1,error.retryAfter||60);
-       guestRetryAt=Date.now()+seconds*1000;
-       toast(`Too many report attempts. Try again in ${seconds} seconds.`);
-     }else toast(`Database submission failed: ${error.message}`);
-   })
-    .finally(()=>{button.disabled=!liveGuestEnabled;});
-  return;
+  const notes=[[...selectedNotes].join(', '),details].filter(Boolean).join(' · ');
+  if([...notes].length>1000){
+   reportError('Keep quick notes and written details to 1,000 characters total.',()=>$('audit-details').focus());return;
+  }
+  return submitGuestReport({restaurant_key:restaurantId,rating_score:selectedRating,
+   order_was_cancelled:cancelled,actual_observed_delivery_mins:minutes,comment_text:notes});
  }
  const report={id:`report_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,restaurantId,cancelled,minutes,rating:selectedRating,notes:[...selectedNotes].join(', ')+(details?(selectedNotes.size?' · '+details:details):''),createdAt:new Date().toISOString()};
  const list=safeRead(REPORT_KEY);list.unshift(report);const stored=safeWrite(REPORT_KEY,list.slice(0,200));const r=state.restaurants.find(x=>x.id===restaurantId);r.userReviews.unshift({user:'Campus guest',mins:minutes,rating:selectedRating,cancelled,note:report.notes,time:'Just now'});if(cancelled)r.cancellationProxyPct+=3.5;
@@ -337,6 +441,8 @@ function initAdmin(){document.querySelectorAll('.nav-link').forEach(btn=>{btn.on
  $('alert-filter').onchange=renderAlerts;
  // Action Log form and note behavior are initialized below.
  $('open-sort').onclick=()=>togglePopup('sort-popover','open-sort');$('open-filter').onclick=()=>togglePopup('filter-popover','open-filter');$('open-search').onclick=openSearch;$('close-search').onclick=closeSearch;$('directory-search').oninput=renderDirectory;
+ $('bp-directory-prev').onclick=()=>changeDirectoryPage(-1);
+ $('bp-directory-next').onclick=()=>changeDirectoryPage(1);
  // Replace Safari's native select with a compact six-category click-to-cycle menu.
  initCyclingSortMenu();
  $('filter-zone').onchange=renderDirectory;$('filter-health').onchange=renderDirectory;$('filter-cuisine').onchange=renderDirectory;$('filter-reset').onclick=()=>{$('filter-zone').value='ALL';$('filter-health').value='ALL';$('filter-cuisine').value='ALL';syncCompactSelects();closePopups();renderDirectory();};
@@ -540,14 +646,15 @@ function renderAdmin(){
   charts.forEach(chart=>chart.destroy());charts=[];
   $('alerts-list').replaceChildren();
   $('bp-directory-coverage').hidden=true;
+  const pager=$('bp-directory-pagination');if(pager)pager.hidden=true;
   $('directory-rows').replaceChildren();
   $('restaurant-count').textContent='';
   $('filter-summary').textContent='';
   return;
  }
- renderKpis();renderCharts();renderAlerts();renderDirectoryCoverage();renderNotes();renderDirectory();
+ renderDirectoryCoverage(renderKpis());renderCharts();renderAlerts();renderNotes();renderDirectory();
 }
-function renderDirectoryCoverage(){
+function renderDirectoryCoverage(secondary=[]){
  const el=$('bp-directory-coverage');if(!el)return;
  el.hidden=!liveMode;if(!liveMode)return;
  const rows=state.restaurants;
@@ -556,12 +663,21 @@ function renderDirectoryCoverage(){
  const reportedRated=rows.filter(r=>Number.isFinite(r.selfReportedRating)).length;
  const unclassified=rows.filter(r=>/^Unclassified\b/i.test(r.cuisine)).length;
  const unassigned=rows.filter(r=>!r.zone||r.zone==='Unassigned zone').length;
- el.innerHTML='<h3>Current active directory and period coverage</h3><div class="bp-coverage-grid">'+
+ el.innerHTML='<summary>Coverage and supporting metrics</summary><div class="bp-coverage-grid">'+
   [[rows.length,'current active listings'],[missingAddress,'without a recorded street address'],
    [unassigned,'without zone assignments'],[unclassified,'unclassified cuisine'],
    [warehouseRated,'with an eligible warehouse rating in period'],[reportedRated,'with a self-reported rating in period']]
   .map(([count,label])=>`<div><strong>${html(count)}</strong><span>${html(label)}</span></div>`).join('')+
-  '</div><p>Address coverage excludes collector placeholders. Rating coverage follows the selected period.</p>';
+  '</div>'+
+  (secondary.length?'<dl class="bp-supporting-metrics">'+secondary.map(([label,value,description])=>
+   `<div><dt>${html(label)}</dt><dd><strong>${html(value)}</strong><small>${html(description)}</small></dd></div>`).join('')+'</dl>':'')+
+  '<p>Address coverage excludes collector placeholders. Rating coverage follows the selected period.</p>';
+}
+function sampleLabel(count,singular,plural=singular+'s'){
+ return `Based on ${count} ${count===1?singular:plural}`;
+}
+function warehouseRatingLabel(days){
+ return days?sampleLabel(days,'day with an eligible rating','days with eligible ratings'):'No eligible warehouse ratings in this period';
 }
 function reportMetrics(report){
  const count=key=>Number(report[key]||0);
@@ -570,9 +686,9 @@ function reportMetrics(report){
  const known=count('known_outcome_count'), share=liveNumber(report.reported_cancellation_share);
  return [
   ['Accepted reports',String(total),'All stored submissions in selected period'],
-  ['Self-reported rating',ratings?`${numberText(liveNumber(report.auditor_avg_rating),2)} / 5`:'Unavailable',`n = ${ratings} rating${ratings===1?'':'s'}`],
-  ['Self-reported completed delivery',completed?`${numberText(liveNumber(report.observed_delivery_mins))} min`:'Unavailable',`n = ${completed} completed reports with valid minutes`],
-  ['Self-reported cancellation share',known&&share!==null?`${numberText(share*100)}%`:'Unavailable',`${cancelled} cancelled / ${known} reports with known outcomes`]
+  ['Self-reported rating',ratings?`${numberText(liveNumber(report.auditor_avg_rating),2)} / 5`:'Not available',ratings?sampleLabel(ratings,'rating'):'No ratings in this period'],
+  ['Self-reported completed delivery',completed?`${numberText(liveNumber(report.observed_delivery_mins))} min`:'Not available',completed?sampleLabel(completed,'completed delivery','completed deliveries'):'No completed deliveries with a valid time'],
+  ['Self-reported cancellation share',known&&share!==null?`${numberText(share*100)}%`:'Not available',`${cancelled} cancelled out of ${known} ${known===1?'report':'reports'} with a known outcome`]
  ];
 }
 const reportMethodology='Reports are a self-selected sample. Small samples describe those submissions and cannot establish restaurant performance.';
@@ -589,24 +705,31 @@ function renderKpis(){
   const critical=state.alerts.filter(a=>a.status!=='RESOLVED'&&a.severity==='CRITICAL').length;
   const reports=Number(liveReportTotals.auditor_report_count||0);
   const status=(v,w,c)=>v===null?'INFO':(v>=c?'CRITICAL':v>=w?'WARNING':'NORMAL');
-  const cards=[
-   ['Current active restaurants',String(arr.length),'Deduplicated current directory listings','INFO'],
-   ['UST zones represented',String(distinct('zone')),'Based on recorded restaurant locations','INFO'],
-   ['Cuisine categories',String(distinct('cuisine')),'Includes unclassified cuisine when present','INFO'],
-   ['Addresses recorded',`${addresses} / ${arr.length}`,'Excludes collector placeholders','INFO'],
-   ['Modeled delivery',eta===null?'—':`${eta.toFixed(1)} min`,syntheticDemo?'SYNTHETIC DEMO · not real ETAs':'Period estimates, not verified delivery times',status(eta,35,45)],
-   ['Modeled risk index',risk===null?'—':`${risk.toFixed(1)}${syntheticDemo?'%':' points'}`,syntheticDemo?'SYNTHETIC DEMO · not a cancellation rate':'Model estimate, not actual cancellation rate',status(risk,8,15)],
-   ...(syntheticDemo?[['Restaurants with synthetic ratings',`${warehouseRated} / ${arr.length}`,'Illustrative scores','INFO']]:[
-     ['Restaurants with warehouse ratings',`${warehouseRated} / ${arr.length}`,'Eligible warehouse ratings in period','INFO'],
-     ['Restaurants with self-reported ratings',`${reportedRated} / ${arr.length}`,'Active listings with report ratings in period','INFO']
-   ]),
-   [syntheticDemo?'Simulated alerts':'Open warehouse alerts',String(open),syntheticDemo?'SYNTHETIC · not real incidents':`${critical} critical in selected period`,critical?'CRITICAL':open?'WARNING':'INFO'],
-   ...(syntheticDemo?[['Demo reports',String(Math.min(6,arr.length)),'Synthetic samples · browser-local practice','INFO']]:
-    reportMetrics(liveReportTotals).map(metric=>[...metric,'INFO']))
+  const directory=['Current active restaurants',String(arr.length),'Deduplicated directory listings','INFO'];
+  const warehouse=[
+   ['Modeled delivery',eta===null?'Not available':`${eta.toFixed(1)} min`,syntheticDemo?'Synthetic estimate':`${valid('eta').length} restaurants with a modeled estimate`,status(eta,35,45)],
+   ['Modeled risk index',risk===null?'Not available':`${risk.toFixed(1)}${syntheticDemo?'%':' points'}`,syntheticDemo?'Synthetic index':'Model-derived cancellation risk',status(risk,8,15)],
+   [syntheticDemo?'Restaurants with synthetic ratings':'Restaurants with warehouse ratings',`${warehouseRated} / ${arr.length}`,syntheticDemo?'Illustrative scores':'Eligible warehouse ratings in this period','INFO'],
+   [syntheticDemo?'Simulated alerts':'Open warehouse alerts',String(open),`${critical} critical in this period`,critical?'CRITICAL':open?'WARNING':'INFO']
   ];
-  $('kpis').innerHTML=cards.map(([name,value,sub,level])=>`<div class="kpi kpi--${level.toLowerCase()}"><div class="k-label">${html(name)}</div>${level==='INFO'?'':badge(level)}<strong>${html(value)}</strong><div class="k-caption">${html(sub)}</div></div>`).join('');
-  $('executive-summary').textContent=syntheticDemo?`${dateRangeLabel()} · ${arr.length} REAL OSM restaurant identities · SYNTHETIC DEMO ratings, delivery estimates, risks, health, alerts and demand. No real transactions or reported performance.`:`${dateRangeLabel()} · ${arr.length} active-directory restaurants from MySQL · ${distinct('cuisine')} cuisine categories · ${valid('eta').length} with modeled delivery estimates · ${reports} accepted reports across all venues in this period. ${reportMethodology}`;
-  return;
+  const reported=reportMetrics(liveReportTotals).map(metric=>[...metric,'INFO']);
+  const hasWarehouse=liveTrend.length>0;
+  const showReports=!syntheticDemo&&(periodPreset==='latest-report'||(periodPreset!=='latest'&&!hasWarehouse));
+  const showBoth=!syntheticDemo&&periodPreset!=='latest'&&periodPreset!=='latest-report'&&hasWarehouse&&reports>0;
+  const primary=showReports?reported:showBoth?[...warehouse.slice(0,2),...reported.slice(0,2)]:warehouse;
+  const cards=[directory,...primary];
+  const secondary=[
+   ['UST zones represented',String(distinct('zone')),'Based on recorded restaurant locations'],
+   ['Cuisine categories',String(distinct('cuisine')),'Includes unclassified cuisine when present'],
+   ['Addresses recorded',`${addresses} / ${arr.length}`,'Excludes collector placeholders'],
+   ...(syntheticDemo?[['Demo reports',String(Math.min(6,arr.length)),'Browser-local synthetic samples']]:[
+    ['Restaurants with self-reported ratings',`${reportedRated} / ${arr.length}`,'Active listings with report ratings in this period'],
+    ...[...warehouse,...reported].filter(metric=>!primary.includes(metric))
+   ])
+  ];
+  $('kpis').innerHTML=cards.map(([name,value,sub,level])=>`<div class="kpi kpi--${level.toLowerCase()}"><div class="bp-kpi-heading"><div class="k-label">${html(name)}</div>${level==='INFO'?'':badge(level)}</div><strong>${html(value)}</strong><div class="k-caption">${html(sub)}</div></div>`).join('');
+  $('executive-summary').textContent=syntheticDemo?'Synthetic performance data for real OpenStreetMap listings.':'Warehouse estimates and student delivery reports for UST Manila.';
+  return secondary;
  }
  const arr=enriched(), avg=key=>arr.length?arr.reduce((a,r)=>a+r[key],0)/arr.length:0;
  const alerts=demoAlerts(),open=alerts.filter(a=>a.status==='OPEN'||a.status==='ACKNOWLEDGED').length,critical=alerts.filter(a=>a.status!=='RESOLVED'&&a.severity==='CRITICAL'&&!a.modeled).length;
@@ -882,31 +1005,95 @@ function renderNotes(){
 
 function directoryRows(){
  const query=$('directory-search').value.trim().toLocaleLowerCase(),zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value;
- let arr=enriched().filter(r=>(!query||[r.name,r.branch,r.cuisine,r.zone].some(s=>s.toLowerCase().includes(query)))&&(zone==='ALL'||r.zone===zone)&&(health==='ALL'||r.health===health)&&(cuisine==='ALL'||r.cuisine===cuisine));
+ let arr=enriched().filter(r=>(!query||[r.name,r.branch,r.streetAddress,r.cuisine,r.zone].some(s=>String(s||'').toLowerCase().includes(query)))&&(zone==='ALL'||r.zone===zone)&&(health==='ALL'||r.health===health)&&(cuisine==='ALL'||r.cuisine===cuisine));
  if(sortBy!=='default'){
   const sign=sortBy.endsWith('asc')?1:-1,type=sortBy.split('-')[0],priorities={NORMAL:0,WARNING:1,CRITICAL:2};
   arr.sort((a,b)=>{if(liveMode && type!=='name'){const key={distance:'distance',price:'avgPricePhp',risk:'cancellationProxyPct',rating:'publicRating'}[type];if(key){const va=key==='distance'&&a[key]===999?null:a[key],vb=key==='distance'&&b[key]===999?null:b[key];if(va===null&&vb!==null)return 1;if(vb===null&&va!==null)return -1;}if(type==='health'){if(a.health==='UNKNOWN'&&b.health!=='UNKNOWN')return 1;if(b.health==='UNKNOWN'&&a.health!=='UNKNOWN')return -1;}}let d=0;switch(type){case'distance':d=a.distance-b.distance;break;case'name':d=a.name.localeCompare(b.name);break;case'price':d=a.avgPricePhp-b.avgPricePhp;break;case'risk':d=a.cancellationProxyPct-b.cancellationProxyPct;break;case'rating':d=liveMode?a.publicRating-b.publicRating:a.blendedRating-b.blendedRating;break;case'health':d=priorities[a.health]-priorities[b.health];break;}return d*sign||a.name.localeCompare(b.name);});
  }
  return arr;
 }
-function renderDirectory(){
+function directoryPageRows(rows){
+ const total=rows.length, pages=Math.ceil(total/DIRECTORY_PAGE_SIZE);
+ directoryPage=Math.max(1,Math.min(directoryPage,pages));
+ const start=(directoryPage-1)*DIRECTORY_PAGE_SIZE,end=Math.min(start+DIRECTORY_PAGE_SIZE,total);
+ $('restaurant-count').textContent=`· ${total} matching ${total===1?'result':'results'}`;
+ $('bp-directory-pagination').hidden=false;
+ $('bp-directory-prev').disabled=directoryPage===1;
+ $('bp-directory-next').disabled=directoryPage>=pages;
+ $('bp-directory-position').textContent=total?`Page ${directoryPage} of ${pages} · Showing ${start+1}–${end}`:'No matching results';
+ return rows.slice(start,end);
+}
+function changeDirectoryPage(delta){
+ directoryPage+=delta;
+ renderDirectory(true);
+ const current=$(delta>0?'bp-directory-next':'bp-directory-prev');
+ if(current.disabled)$(delta>0?'bp-directory-prev':'bp-directory-next').focus();
+}
+function renderDirectory(keepPage=false){
+ if(keepPage!==true)directoryPage=1;
+ const arr=directoryPageRows(directoryRows()),query=$('directory-search').value.trim();
+ const zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value;
+ const labels={'default':liveMode?'Default order':'Original sample order','distance-asc':'Distance · closest first','distance-desc':'Distance · farthest first','name-asc':'Name · A to Z','name-desc':'Name · Z to A','price-asc':'Price · low to high','price-desc':'Price · high to low','risk-desc':'Risk · highest first','risk-asc':'Risk · lowest first','rating-desc':'Rating · highest first','rating-asc':'Rating · lowest first','health-desc':'Health · critical first','health-asc':'Health · normal first'};
+ const filterCount=[zone,health,cuisine].filter(x=>x!=='ALL').length;
+ $('filter-summary').textContent=`${dateRangeLabel()} · ${labels[sortBy]}${filterCount?` · ${filterCount} active ${filterCount===1?'filter':'filters'}`:''}${query?' · Search applied':''}`;
  if(liveMode){
-  const arr=directoryRows(),query=$('directory-search').value.trim();
-  const zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value;
-  $('restaurant-count').textContent=`· ${arr.length} results`;
-  $('filter-summary').textContent=`${dateRangeLabel()} · ${syntheticDemo?'REAL OSM DIRECTORY + SYNTHETIC DEMO METRICS':'MySQL warehouse'} · ${sortBy==='default'?'Default order':sortBy}${query?' · Search applied':''}`;
-  $('directory-rows').innerHTML=arr.length?arr.map(r=>`<tr><td><button type="button" class="bp-restaurant-detail-link" data-restaurant-detail="${r.id}">${html(r.name)} <span aria-hidden="true">↗</span></button><div class="cell-sub">${html(r.cuisine)}</div></td><td>${html(String(r.zone||'Unknown').replace('UST - ',''))}<div class="cell-sub">${html(r.branch)}</div></td><td>${r.distance===999?'—':r.distance.toFixed(2)+' km'}</td><td>${numberText(r.avgPricePhp,0)==='—'?'—':'₱'+numberText(r.avgPricePhp,0)}</td><td>${numberText(r.eta)}${r.eta===null?'':' min'}<div class="cell-sub">${syntheticDemo?'SYNTHETIC DEMO':r.eta===null?'No dated estimate':'Model-derived, not observed'}</div></td><td>${r.cancellationProxyPct===null?'—':numberText(r.cancellationProxyPct)+(syntheticDemo?'%':' points')}</td><td>${r.publicRating===null?'—':numberText(r.publicRating,2)+' ★'}<div class="cell-sub">${syntheticDemo?'Synthetic rating':`Warehouse rating · n = ${r.warehouseRatingDays} venue-days`}</div>${!syntheticDemo&&r.selfReportedRating!==null?`<div class="cell-sub">Self-reported: ${numberText(r.selfReportedRating,2)} ★ · n = ${r.reportRatingCount}</div>`:''}</td><td>${r.health==='UNKNOWN'?'<span class="pill unknown">Unknown</span>':badge(r.health)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">No database restaurants match this search or filters.</td></tr>';
+  $('directory-rows').innerHTML=arr.length?arr.map(liveDirectoryRow).join(''):'<tr><td colspan="8" class="empty">No database restaurants match this search or filters.</td></tr>';
   return;
  }
- const arr=directoryRows(),query=$('directory-search').value.trim(),zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value;
- $('restaurant-count').textContent=`· ${arr.length} results`;
- const labels={'default':'Original sample order','distance-asc':'Distance · closest first','distance-desc':'Distance · farthest first','name-asc':'Name · A to Z','name-desc':'Name · Z to A','price-asc':'Price · low to high','price-desc':'Price · high to low','risk-desc':'Risk · highest first','risk-asc':'Risk · lowest first','rating-desc':'Rating · highest first','rating-asc':'Rating · lowest first','health-desc':'Health · critical first','health-asc':'Health · normal first'};
- const filterCount=[zone,health,cuisine].filter(x=>x!=='ALL').length;
- $('filter-summary').textContent=`${dateRangeLabel()} · ${labels[sortBy]}${filterCount?` · ${filterCount} filter${filterCount===1?'':'s'}`:''}${query?' · Search applied':''} · Click a restaurant for details`;
  $('directory-rows').innerHTML=arr.length?arr.map(r=>`<tr><td><button type="button" class="bp-restaurant-detail-link" data-restaurant-detail="${r.id}" aria-label="View performance details for ${html(r.name)}">${html(r.name)} <span aria-hidden="true">↗</span></button><div class="cell-sub">${html(r.cuisine)}</div></td><td>${html(r.zone.replace('UST - ',''))}<div class="cell-sub">${html(r.nearestGate.split(' (')[0])}</div></td><td>${r.distance.toFixed(2)} km</td><td>₱${r.avgPricePhp.toFixed(0)} avg<div class="cell-sub">${html(r.priceRange)}</div></td><td>${r.eta.toFixed(1)} min<div class="cell-sub">${r.verified===null?'Modeled estimate':`Auditor ${r.verified} min`}</div></td><td>${r.cancellationProxyPct.toFixed(1)}%</td><td>${r.blendedRating.toFixed(2)} ★</td><td>${badge(r.health)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">No restaurants match this date range, search, or filters.</td></tr>';
+}
+function liveDirectoryRow(r){
+ const warehouseRating=(syntheticDemo||r.warehouseRatingDays>0)&&Number.isFinite(r.publicRating);
+ const price=Number.isFinite(r.avgPricePhp)?`₱${numberText(r.avgPricePhp,0)}<div class="cell-sub">${syntheticDemo?'Synthetic average':'Modeled average'}</div>`:'Not available';
+ const rating=warehouseRating?`${numberText(r.publicRating,2)} ★`:'Not available';
+ const outcome=Number.isFinite(r.eta)?`${numberText(r.eta)} min`:'Not available';
+ return `<tr>
+  <td><button type="button" class="bp-restaurant-detail-link" data-restaurant-detail="${r.id}">${html(r.name)} <span aria-hidden="true">↗</span></button><div class="cell-sub">${html(r.cuisine)}</div></td>
+  <td>${html(String(r.zone||'Unassigned zone').replace('UST - ',''))}<div class="cell-sub">${html(r.branch||'Address not available')}</div></td>
+  <td>${r.distance===999?'Not available':r.distance.toFixed(2)+' km'}</td>
+  <td>${price}</td>
+  <td>${outcome}${Number.isFinite(r.eta)?`<div class="cell-sub">${syntheticDemo?'Synthetic estimate':'Modeled estimate'}</div>`:''}</td>
+  <td>${Number.isFinite(r.cancellationProxyPct)?numberText(r.cancellationProxyPct)+(syntheticDemo?'%':' points'):'Not available'}</td>
+  <td>${rating}<div class="cell-sub">${syntheticDemo?'Synthetic rating':html(warehouseRatingLabel(r.warehouseRatingDays))}</div>${!syntheticDemo&&Number.isFinite(r.selfReportedRating)&&r.reportRatingCount>0?`<div class="cell-sub">Self-reported: ${numberText(r.selfReportedRating,2)} ★ · ${html(sampleLabel(r.reportRatingCount,'rating'))}</div>`:''}</td>
+  <td>${r.health==='UNKNOWN'?'<span class="pill unknown">Unknown</span>':badge(r.health)}</td>
+ </tr>`;
+}
+function chartTheme(){
+ const style=getComputedStyle(document.documentElement);
+ return Object.fromEntries(['ink','grid','axis','blue','teal'].map(key=>[key,style.getPropertyValue('--chart-'+key).trim()]));
+}
+function drawChart(id,config,theme){
+ const {plugins={},scales={},...options}=config.options;
+ const {legend={},...otherPlugins}=plugins;
+ const axes={x:{},y:{},...scales};
+ const canvas=$(id);
+ const panel=canvas.closest('.chart-panel');
+ canvas.setAttribute('role','img');
+ canvas.setAttribute('aria-label',`${panel.querySelector('h3').textContent}. ${panel.querySelector('p').textContent}`);
+ canvas.hidden=false;
+ canvas.parentElement.querySelector('.bp-chart-data-fallback')?.remove();
+ charts.push(new Chart(canvas,{...config,options:{
+  ...options,color:theme.ink,
+  plugins:{...otherPlugins,legend:{...legend,labels:{...legend.labels,color:theme.ink}}},
+  scales:Object.fromEntries(Object.entries(axes).map(([id,axis])=>[id,{
+   ...axis,ticks:{...axis.ticks,color:theme.ink},title:{...axis.title,color:theme.ink},
+   grid:{...axis.grid,color:theme.grid},border:{...axis.border,color:theme.axis}
+  }]))
+ }}));
+}
+function showChartFallback(panel,items){
+ const box=panel.querySelector('.chart-box');
+ const canvas=box.querySelector('canvas');
+ if(canvas)canvas.hidden=true;
+ box.querySelector('.bp-chart-data-fallback')?.remove();
+ const text=document.createElement('p');
+ text.className='bp-chart-data-fallback';
+ text.textContent=items.join(' · ')||'No warehouse records for this chart';
+ box.append(text);
 }
 function renderCharts(){
  if(liveMode && syntheticDemo){ renderSyntheticCharts(); return; }
+ charts.forEach(c=>c.destroy());charts=[];
  if(liveMode){
   // Keep the existing chart panels; show what MySQL actually provides even
   // when there are no historical ratings or only one dated trend record.
@@ -937,46 +1124,56 @@ function renderCharts(){
   trendPanel.querySelector('p').textContent=showTrend?
    dated.length===1?`${dated[0].date} · one modeled warehouse date`:`${dated.length} recorded dates in selected period · modeled, not actual orders`:
    'No dated demand or delivery estimates for the selected period. The chart shows directory and metric coverage.';
-  const common={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}};
+  const common={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
   if(typeof Chart==='undefined'){
-   charts.forEach(c=>c.destroy());charts=[];
    const fallbacks=[
     [zonePanel,zones],
     [trendPanel,showTrend?dated.map(d=>[d.date,`Modeled demand: ${d.orders??'Unavailable'}; modeled ETA: ${d.eta??'Unavailable'}`]):metrics],
     [cuisinePanel,cuisines]
    ];
-   for(const [panel,items] of fallbacks){
-    const box=panel.querySelector('.chart-box');box.replaceChildren();
-    const p=document.createElement('div');p.className='bp-chart-data-fallback';
-    p.textContent=items.length?items.map(([k,v])=>`${k}: ${v}`).join(' · '):'No warehouse records for this chart';
-    box.append(p);
-   }
+   for(const [panel,items] of fallbacks)showChartFallback(panel,items.map(([k,v])=>`${k}: ${v}`));
    return;
   }
-  charts.forEach(c=>c.destroy());charts=[];
-  const zoneChart=zones.length?zones:[['No assigned zones',0]];
-  charts.push(new Chart($('zone-chart'),{type:'bar',data:{labels:zoneChart.map(x=>x[0].replace('UST - ','')),datasets:[{label:'Restaurants',data:zoneChart.map(x=>x[1]),backgroundColor:'#3772e9',borderRadius:5}]},options:common}));
+  const theme=chartTheme();
+  const countAxis={beginAtZero:true,ticks:{precision:0},title:{display:true,text:'Restaurants'}};
+  const categories={ticks:{autoSkip:false,callback:function(value){
+   const label=this.getLabelForValue(value);
+   return label.length>20?label.match(/.{1,20}(?:\s|$)|\S{21,}/g)?.map(part=>part.trim())||label:label;
+  }}};
+  const countChart=(id,items,color,x=countAxis)=>drawChart(id,{
+   type:'bar',data:{labels:items.map(([label])=>label),datasets:[{label:'Restaurants',data:items.map(([,count])=>count),backgroundColor:color,borderRadius:5}]},
+   options:{...common,indexAxis:'y',scales:{x,y:categories}}
+  },theme);
+  countChart('zone-chart',zones.map(([label,count])=>[label.replace('UST - ',''),count]),theme.blue);
   if(showTrend){
    const one=dated.length===1;
-   charts.push(new Chart($('trend-chart'),{type:one?'bar':'line',data:{labels:dated.map(x=>x.date.slice(5)),datasets:[
-    {label:'Modeled demand',data:dated.map(x=>x.orders),borderColor:'#3772e9',backgroundColor:'#3772e9',yAxisID:'y',tension:.25,pointRadius:one?0:4},
-    {label:'Modeled ETA (min)',data:dated.map(x=>x.eta),borderColor:'#13a39a',backgroundColor:'#13a39a',yAxisID:'y1',tension:.25,pointRadius:one?0:4}
-   ]},options:{...common,plugins:{legend:{display:true,position:'bottom'}},scales:{y:{beginAtZero:true,title:{display:true,text:'Modeled demand'}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Minutes'}}}}}));
+   const datasets=[
+    {label:'Modeled demand',data:dated.map(x=>x.orders),borderColor:theme.blue,backgroundColor:theme.blue},
+    {label:'Modeled delivery (min)',data:dated.map(x=>x.eta),borderColor:theme.teal,backgroundColor:theme.teal}
+   ].filter(series=>series.data.some(Number.isFinite));
+   const axes={x:{title:{display:true,text:'Warehouse date (MM-DD)'}}};
+   datasets.forEach((series,index)=>{
+    series.yAxisID=index?'y1':'y';
+    series.tension=.25;
+    series.pointRadius=one?0:4;
+    axes[series.yAxisID]={beginAtZero:true,position:index?'right':'left',grid:{drawOnChartArea:index===0},
+     title:{display:true,text:series.label==='Modeled demand'?'Estimated orders':'Minutes'}};
+   });
+   drawChart('trend-chart',{type:one?'bar':'line',data:{labels:dated.map(x=>x.date.slice(5)),datasets},
+    options:{...common,plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:12}}},scales:axes}},theme);
   }else{
-   charts.push(new Chart($('trend-chart'),{type:'bar',data:{labels:metrics.map(x=>x[0]),datasets:[{label:'Restaurants with data',data:metrics.map(x=>x[1]),backgroundColor:'#13a39a',borderRadius:5}]},options:{...common,indexAxis:'y',scales:{x:{beginAtZero:true,max:Math.max(1,rows.length),ticks:{precision:0}},y:{}}}}));
+   countChart('trend-chart',metrics,theme.teal,{...countAxis,max:Math.max(1,rows.length)});
   }
   const top=cuisines.slice(0,9);
   if(cuisines.length>9)top.push(['Other cuisines',cuisines.slice(9).reduce((n,x)=>n+x[1],0)]);
-  const cuisineChart=top.length?top:[['No classified restaurants',0]];
-  charts.push(new Chart($('cuisine-chart'),{type:'bar',data:{labels:cuisineChart.map(x=>x[0]),datasets:[{label:'Restaurants',data:cuisineChart.map(x=>x[1]),backgroundColor:'#3772e9',borderRadius:5}]},options:{...common,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{}}}}));
+  countChart('cuisine-chart',top,theme.blue);
   return;
  }
  if(typeof Chart==='undefined'){
   for(const id of ['zone-chart','trend-chart','cuisine-chart']){const box=$(id).parentElement;if(!box.querySelector('.chart-fallback')){const el=document.createElement('p');el.className='chart-fallback small muted';el.textContent='Charts need an internet connection to load Chart.js.';box.append(el);}}
   return;
  }
- charts.forEach(c=>c.destroy());charts=[];
- const dark=document.documentElement.dataset.theme==='dark',ink=dark?'#bfd0e6':'#68778c',grid=dark?'#35465f':'#e6edf3';Chart.defaults.color=ink;Chart.defaults.borderColor=grid;
+ const theme=chartTheme();Chart.defaults.color=theme.ink;Chart.defaults.borderColor=theme.grid;
  const all=enriched(),zones=['UST - España Blvd','UST - Dapitan St','UST - P. Noval St','UST - Lacson Ave'],labels=['España','Dapitan','P. Noval','Lacson'];
  const grouped=zones.map(z=>all.filter(r=>r.zone===z));const average=(g,key)=>g.length?g.reduce((a,x)=>a+x[key],0)/g.length:0;
  const common={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11}}}};
@@ -1007,8 +1204,9 @@ function renderSyntheticCharts(){
  charts.forEach(c=>c.destroy());charts=[];
  if(typeof Chart==='undefined'){
   const fallback=[zones.map(([k,v])=>[k,+(v.eta/v.count).toFixed(1)]),dated.map(v=>[v.date,v.orders]),cuisines.map(([k,v])=>[k,+(v.rating/v.count).toFixed(2)])];
-  panels.forEach((panel,i)=>{const box=panel.querySelector('.chart-box');box.replaceChildren();const p=document.createElement('div');p.className='bp-chart-data-fallback';p.textContent=fallback[i].map(([k,v])=>`${k}: ${v}`).join(' · ');box.append(p);});return;
+  panels.forEach((panel,i)=>showChartFallback(panel,fallback[i].map(([k,v])=>`${k}: ${v}`)));return;
  }
+ const theme=chartTheme();Chart.defaults.color=theme.ink;Chart.defaults.borderColor=theme.grid;
  const common={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}};
  charts.push(new Chart($('zone-chart'),{type:'bar',data:{labels:zones.map(([z])=>z.replace('UST - ','')),datasets:[
   {label:'Synthetic ETA (min)',data:zones.map(([_,v])=>+(v.eta/v.count).toFixed(1)),backgroundColor:'#3772e9',yAxisID:'y'},
@@ -1019,7 +1217,7 @@ function renderSyntheticCharts(){
  charts.push(new Chart($('cuisine-chart'),{type:'bar',data:{labels:cuisines.map(([c])=>c),datasets:[
   {label:'Synthetic rating / 5',data:cuisines.map(([_,v])=>+(v.rating/v.count).toFixed(2)),backgroundColor:'#3772e9'}]},options:{...common,indexAxis:'y',scales:{x:{min:0,max:5},y:{}}}}));
 }
-function refreshCharts(){if(page==='admin'&&$('zone-chart'))renderCharts();}
+function refreshCharts(){if(page==='admin'&&$('zone-chart')&&!(liveRequired&&liveError))renderCharts();}
 
 
 // ----- BluePlate v6: dated illustrative history and shared date controls -----
@@ -1079,17 +1277,21 @@ function syncPeriodButtons(){
 function renderPeriodCaption(){
  const caption=$('bp-period-caption');
  if(!caption)return;
+ const freshness=$('bp-view-freshness');
+ freshness.hidden=!liveMode||syntheticDemo;
  if(syntheticDemo){
   caption.textContent=customPeriodDraft?'Choose both dates, then click Apply dates.':`${dateRangeLabel()} · SYNTHETIC DEMONSTRATION · real OSM venues, fabricated performance data.`;
   return;
  }
- const freshness=latestReportingDate===null?'No dated analytics available in MySQL':
-  latestReportingDate?`Latest MySQL reporting date ${latestReportingDate}`:'MySQL reporting date unavailable';
- const reportFreshness=latestReportSubmissionDate===null?'No user reports':
-  latestReportSubmissionDate?`Latest user-report date ${latestReportSubmissionDate}`:'Latest user-report date unavailable';
- const period=customPeriodDraft?'Choose both dates, then click Apply dates':dateRangeLabel();
- const empty=!customPeriodDraft&&liveHasObservations===false?' · No analytics records or auditor reports for the selected period.':'';
- caption.textContent=`${period} · ${freshness} · ${reportFreshness} (Manila submission date) · Demand, delivery time, and cancellation risk are modeled estimates.${empty}`;
+ const {from,to}=currentRange();
+ const range=from===to?to:`${from} to ${to}`;
+ const context=periodPreset==='latest'?'Modeled warehouse snapshot':periodPreset==='latest-report'?'Student-reported feedback':'Selected reporting period';
+ const selected=customPeriodDraft?'Choose both dates, then select Apply dates.':`${context} · ${range}`;
+ const empty=!customPeriodDraft&&liveHasObservations===false?'\nNo warehouse estimates or student reports for this period.':'';
+ caption.textContent=`${selected}${empty}`;
+ $('bp-warehouse-date').textContent=latestReportingDate||'Not available';
+ $('bp-latest-guest-date').textContent=latestGuestReportDate||(latestGuestReportDate===null?'No guest reports yet':'Not available');
+ $('bp-dashboard-loaded-at').textContent=dashboardLoadedAt?.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})||'Not available';
 }
 function refreshSelectedPeriod(){
  customPeriodDraft=false;
@@ -1110,7 +1312,13 @@ function updatePeriod(){
 }
 function initPeriodToolbar(){
  const host=document.createElement('div');host.className='bp-period-toolbar';
- host.innerHTML=`<div class="bp-period-top"><div><div class="bp-feature-title">Reporting period</div><p id="bp-period-caption" class="bp-feature-description" aria-live="polite"></p></div><div class="bp-period-tabs" role="group" aria-label="Reporting period"><button type="button" id="bp-latest-period" class="hidden" data-period="latest">Latest warehouse date</button><button type="button" id="bp-latest-report-period" class="hidden" data-period="latest-report">Latest user-report date</button><button type="button" data-period="7d">7 days</button><button type="button" data-period="30d">30 days</button><button type="button" data-period="90d">90 days</button><button type="button" data-period="custom">Custom</button></div></div><div id="bp-custom-dates" class="bp-custom-dates hidden"><label>From<input id="bp-custom-from" type="date" class="field" aria-label="Start date"></label><label>To<input id="bp-custom-to" type="date" class="field" aria-label="End date"></label><button type="button" id="bp-custom-apply" class="btn secondary">Apply dates</button></div>`;
+ host.innerHTML=`<div class="bp-period-top"><h2 class="bp-feature-title">Reporting period</h2><div class="bp-period-tabs" role="group" aria-label="Reporting period"><button type="button" id="bp-latest-period" class="hidden" data-period="latest">Latest modeled snapshot</button><button type="button" id="bp-latest-report-period" class="hidden" data-period="latest-report">Latest report date</button><button type="button" data-period="7d">7 days</button><button type="button" data-period="30d">30 days</button><button type="button" data-period="90d">90 days</button><button type="button" data-period="custom">Custom</button></div><p id="bp-period-caption" class="bp-feature-description" role="status" aria-atomic="true"></p>
+ <dl id="bp-view-freshness" class="bp-view-freshness" hidden>
+  <div><dt>Latest warehouse data</dt><dd id="bp-warehouse-date"></dd></div>
+  <div><dt>Latest guest report (Manila)</dt><dd id="bp-latest-guest-date"></dd></div>
+  <div><dt>View loaded (browser time)</dt><dd id="bp-dashboard-loaded-at"></dd></div>
+ </dl>
+ <p class="bp-feature-description">Warehouse demand, delivery time, menu price, and risk are estimates. Student feedback describes voluntarily reported deliveries.</p></div><div id="bp-custom-dates" class="bp-custom-dates hidden"><label>From<input id="bp-custom-from" type="date" class="field" aria-label="Start date"></label><label>To<input id="bp-custom-to" type="date" class="field" aria-label="End date"></label><button type="button" id="bp-custom-apply" class="btn secondary">Apply dates</button></div>`;
  $('overview').querySelector('.page-heading').insertAdjacentElement('afterend',host);
  const limits=dateLimits(),from=$('bp-custom-from'),to=$('bp-custom-to');
  for(const input of [from,to]){input.min=limits.oldest;input.max=limits.today;}
@@ -1154,6 +1362,7 @@ function initRestaurantDetails(){
 function smallSparkline(data){
  if(!data.length)return '<p class="small muted">No modeled data for this period.</p>';
  const width=560,height=95,min=Math.min(...data),max=Math.max(...data),spread=Math.max(max-min,1);
+ if(data.length===1)return `<p class="bp-feature-description">One warehouse snapshot: ${numberText(data[0])} min modeled delivery.</p>`;
  const points=data.map((x,i)=>`${(i/Math.max(1,data.length-1)*width).toFixed(1)},${(height-12-(x-min)/spread*(height-24)).toFixed(1)}`).join(' ');
  return `<svg class="bp-trend-sparkline" role="img" aria-label="Modeled daily delivery time trend, ${data.length} observations" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
@@ -1183,7 +1392,26 @@ async function renderLiveRestaurantDetail(id){
   const v=(n,suffix='',places=1)=>liveNumber(n)===null?'Not available':`${numberText(liveNumber(n),places)}${suffix}`;
   const chart=smallSparkline(observed.map(x=>liveNumber(x.proxy_delivery_mins)));
   const zone=d.zone_name||'Unknown zone';
-  box.innerHTML=`<div class="bp-detail-head"><div><div class="section-tag">Restaurant performance · MySQL warehouse</div><h2 id="bp-dialog-title">${html(d.restaurant_name)}</h2><p>${html(d.branch_label||d.street_address||'')} · ${html(d.cuisine_name||'Unclassified')} · ${html(zone)}</p></div><button class="bp-detail-close" type="button" data-close-detail aria-label="Close details">×</button></div><div class="bp-detail-metrics"><div><span>Modeled ETA</span><strong>${html(v(d.proxy_delivery_mins,' min'))}</strong><small>Not observed delivery time</small></div><div><span>Modeled cancellation risk</span><strong>${html(v(d.cancellation_risk_index,' points'))}</strong><small>Not a verified cancellation rate</small></div><div><span>Warehouse rating</span><strong>${html(v(d.public_avg_rating,' / 5',2))}</strong><small>n = ${html(d.warehouse_rating_days||0)} eligible venue-days</small></div>${reportCards}<div><span>Warehouse dates</span><strong>${dates.length}</strong><small>Records for selected period</small></div></div><div class="bp-detail-trend"><div class="bp-feature-title">${snapshot?'Modeled ETA snapshot':observed.length?'Modeled ETA history':'Modeled ETA availability'}</div><p class="bp-feature-description">Dates and model-derived metrics from MySQL. No simulated history inserted by the browser.</p>${chart}</div><p class="bp-feature-description">${html(dateRangeLabel())} · ${html(reportMethodology)}</p>`;
+  const address=String(d.street_address||'').trim();
+  const hasAddress=address&&!['address not recorded in osm','sampaloc, manila'].includes(address.toLowerCase());
+  const reportCards=reportMetrics(d).map(([label,value,caption])=>
+   `<div><span>${html(label)}</span><strong>${html(value)}</strong><small>${html(caption)}</small></div>`).join('');
+  box.innerHTML=`
+   <div class="bp-detail-head"><div><div class="section-tag">Restaurant performance</div>
+    <h2 id="bp-dialog-title">${html(d.restaurant_name)}</h2>
+    <p>${html(d.branch_label||(hasAddress?address:'Address not available'))} · ${html(d.cuisine_name||'Unclassified')} · ${html(zone)}</p></div>
+    <button class="bp-detail-close" type="button" data-close-detail aria-label="Close details">×</button></div>
+   <h3 class="bp-feature-title">Warehouse estimates</h3>
+   <div class="bp-detail-metrics">
+    <div><span>Modeled delivery</span><strong>${html(v(d.proxy_delivery_mins,' min'))}</strong><small>Estimated delivery time</small></div>
+    <div><span>Modeled risk index</span><strong>${html(v(d.cancellation_risk_index,' points'))}</strong><small>Distance-based estimate</small></div>
+    <div><span>Warehouse rating</span><strong>${html(v(d.warehouse_rating_days>0?d.public_avg_rating:null,' / 5',2))}</strong><small>${html(warehouseRatingLabel(d.warehouse_rating_days))}</small></div>
+    <div><span>Warehouse dates</span><strong>${dates.length}</strong><small>Records in this period</small></div>
+   </div>
+   <div class="bp-detail-trend"><h3 class="bp-feature-title">Modeled delivery by date</h3>${chart}</div>
+   <h3 class="bp-feature-title">Student delivery reports</h3>
+   <div class="bp-detail-metrics">${reportCards}</div>
+   <p class="bp-feature-description">${html(reportMethodology)}</p>`;
   $('bp-detail-dialog').setAttribute('aria-labelledby','bp-dialog-title');
  }catch(err){box.textContent=`Could not load warehouse details: ${err.message}`;}
 }
@@ -1236,7 +1464,15 @@ function initSubmissionConfirmation(){
 }
 function showSubmissionConfirmation(report,restaurant,stored){
  const card=$('bp-report-success');
- card.innerHTML=`<div class="bp-success-icon" aria-hidden="true">✓</div><h3 tabindex="-1" id="bp-success-heading">Report submitted!</h3><p class="bp-success-sub">${syntheticDemo?(stored?'DEMO ONLY: saved in this browser; not sent to MySQL.':'DEMO ONLY: saved for this session; not sent to MySQL.'):liveMode?'Saved to the database. This is a self-reported observation, not a verified order.':(stored?'Saved in this browser only. No report was sent to a database.':'Added for this session only. Browser storage was unavailable.')}</p><dl><div><dt>Restaurant</dt><dd>${html(restaurant.name)}</dd></div><div><dt>Outcome</dt><dd class="${report.cancelled?'bp-result-cancelled':'bp-result-delivered'}">${report.cancelled?'Cancelled':'Delivered'}</dd></div><div><dt>Delivery time</dt><dd>${report.cancelled?'Not applicable':Number(report.minutes)+' min'}</dd></div><div><dt>Rating</dt><dd>${Number(report.rating)}/5 ★</dd></div><div><dt>Submitted</dt><dd>${html(formatDateTime(report.createdAt))}</dd></div></dl><button type="button" class="submit-btn" id="bp-submit-another">Submit another report</button><p class="demo-tip">${syntheticDemo?'This is a browser-only practice report; not a real transaction.':liveMode?'The report was accepted by the reporting service.':'This confirmation applies only to the local demo.'}</p>`;
+ const liveReceipt=liveMode&&!syntheticDemo;
+ const title=liveReceipt?(report.status==='replayed'?'Report already saved':'Report saved'):'Practice report added';
+ const details=liveReceipt?
+  `<p class="bp-success-sub">Report reference <strong>#${html(report.user_review_id)}</strong></p>`:
+  `<p class="bp-success-sub">${stored?'This practice report is saved in this browser.':'Browser storage was unavailable. This practice report is available for this session.'}</p>
+   <dl><div><dt>Restaurant</dt><dd>${html(restaurant.name)}</dd></div><div><dt>Outcome</dt><dd class="${report.cancelled?'bp-result-cancelled':'bp-result-delivered'}">${report.cancelled?'Cancelled':'Delivered'}</dd></div><div><dt>Delivery time</dt><dd>${report.cancelled?'Not applicable':Number(report.minutes)+' min'}</dd></div><div><dt>Rating</dt><dd>${Number(report.rating)}/5 ★</dd></div><div><dt>Browser time</dt><dd>${html(formatDateTime(report.createdAt))}</dd></div></dl>`;
+ card.innerHTML=`<div class="bp-success-icon" aria-hidden="true">✓</div><h3 tabindex="-1" id="bp-success-heading">${title}</h3>${details}
+  <button type="button" class="submit-btn" id="bp-submit-another">Submit another report</button>
+  <a class="bp-receipt-link" href="#recent">View Recent campus reports</a>`;
  $('audit-form').classList.add('hidden');card.classList.remove('hidden');
  $('bp-submit-another').onclick=()=>{card.classList.add('hidden');$('audit-form').classList.remove('hidden');$('audit-restaurant')._bpFocus?.();$('report-form-section').scrollIntoView({behavior:'smooth',block:'start'});};
  $('bp-success-heading').focus({preventScroll:true});$('report-form-section').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1259,11 +1495,15 @@ window.BluePlateApp={
   notice.textContent=liveRequired?'Loading warehouse records…':'Local MySQL integration · Loading warehouse records.';
   if(page==='public'){
    const subtitle=document.querySelector('.public-form .subtitle');
-   if(subtitle)subtitle.textContent=syntheticDemo?'PRACTICE ONLY: reports are saved in this browser and never submitted to MySQL. Do not enter personal information.':'Reports are stored in the database when submissions are enabled. Notes are stored privately and are never shown in the public feed. Please do not enter personal information.';
+   if(subtitle)subtitle.textContent=syntheticDemo?'Practice reports stay in this browser. Leave out personal information.':'Choose a restaurant and describe one order.';
+   $('bp-report-privacy').hidden=syntheticDemo;
+   if(location.hash==='#report-form-section')requestAnimationFrame(openReportPrivacy);
+   if(!syntheticDemo)$('bp-public-footer-note').textContent='Campus delivery reports and restaurant analytics.';
    const tag=document.querySelector('#recent .section-tag');if(tag)tag.textContent=syntheticDemo?'SYNTHETIC DEMO REPORTS · BROWSER-LOCAL PRACTICE':'Community reports';
    const help=document.querySelector('#recent .small.muted');if(help)help.textContent=syntheticDemo?'Sample reports are fabricated; your practice submissions stay in this browser. No real orders are represented.':'Recent self-reported submissions.';
-   const tip=$('audit-form')?.querySelector('.demo-tip');if(tip)tip.textContent=syntheticDemo?'SYNTHETIC DEMO: practice reports stay in this browser only; nothing is written to MySQL.':liveGuestEnabled?'Restaurant, outcome, delivery time, and rating may appear in the public feed. Your notes stay private.':'Guest submissions are disabled.';
-   const submit=$('audit-form')?.querySelector('[type="submit"]');if(submit){submit.textContent=syntheticDemo?'Save browser-only demo report':liveGuestEnabled?'Submit database report':'Reports temporarily disabled';submit.disabled=!(syntheticDemo||liveGuestEnabled);}
+   const tip=$('audit-form')?.querySelector('.demo-tip');
+   if(tip){tip.hidden=liveGuestEnabled;tip.textContent=syntheticDemo?'Practice reports are stored in this browser.':'Guest submissions are disabled.';}
+   const submit=$('audit-form')?.querySelector('[type="submit"]');if(submit){submit.textContent=syntheticDemo?'Save browser-only demo report':liveGuestEnabled?'Submit report':'Reports temporarily disabled';submit.disabled=!(syntheticDemo||liveGuestEnabled);}
   }else{
    const {oldest,today}=dateLimits();
    const from=$('bp-custom-from'),to=$('bp-custom-to');
@@ -1272,10 +1512,14 @@ window.BluePlateApp={
     from.value=customFrom=localDay(shiftDay(reportingToday(),-29));
     to.value=customTo=today;
    }
-   const button=$('simulate-refresh');if(button){button.textContent='Refresh warehouse view';button.onclick=()=>{liveHasObservations=null;renderPeriodCaption();return window.BluePlateBridge.refreshDashboard().catch(()=>{});};}
+   const button=$('simulate-refresh');if(button){button.textContent='Reload dashboard data';button.onclick=()=>{liveHasObservations=null;renderPeriodCaption();return window.BluePlateBridge.refreshDashboard().catch(()=>{});};}
   }
   if(syntheticDemo){notice.style.background='#172c46';notice.style.color='#f5f8ff';notice.style.border='1px solid #486a91';}
   if(page==='admin')renderAdmin();else {renderPublicReviews();}
+ },
+ setGuestReportDate(date){
+  latestGuestReportDate=date;
+  renderPeriodCaption();
  },
  setReportingCoverage(latest, latestReport, allowDefault){
   const selected = currentRange();
@@ -1304,6 +1548,7 @@ window.BluePlateApp={
  setAdmin({restaurants,alerts,trend,demo=false,hasObservations=null,reportTotals={}}){
   syntheticDemo=!!demo;
   state.restaurants=restaurants;state.alerts=alerts;liveTrend=trend;liveHasObservations=hasObservations;liveReportTotals=reportTotals;
+  dashboardLoadedAt=new Date();
   liveError='';
   const cuisine=$('filter-cuisine');const previous=cuisine.value;
   cuisine.innerHTML='<option value="ALL">All cuisines</option>'+[...new Set(restaurants.map(r=>r.cuisine))].sort().map(c=>`<option value="${html(c)}">${html(c)}</option>`).join('');
@@ -1311,7 +1556,7 @@ window.BluePlateApp={
   // Compact menu was created from the previous sample options: rebuild it.
   const wrapper=cuisine.nextElementSibling;if(wrapper?.classList.contains('bp-compact-select')){wrapper.remove();cuisine.classList.remove('bp-native-select');initCompactSelects();}
   renderAdmin();renderPeriodCaption();
-  const box=$('bp-live-notice');if(box)box.textContent=syntheticDemo?`SYNTHETIC DEMO MODE · ${restaurants.length} real OSM restaurant identities · ${trend.length} fabricated days · ${alerts.length} simulated alerts. No real ratings, deliveries, risk events or recorded operational actions. © OpenStreetMap contributors (ODbL).`:`Connected to MySQL · ${restaurants.length} restaurants · ${trend.length} dated trend records · ${alerts.length} recorded alerts. No demo fallback values. Venues: © OpenStreetMap contributors (ODbL). BI values are modeled estimates.`;
+  const box=$('bp-live-notice');if(box)box.textContent=syntheticDemo?`SYNTHETIC DEMO MODE · ${restaurants.length} real OSM restaurant identities · ${trend.length} fabricated days · ${alerts.length} simulated alerts. No real ratings, deliveries, risk events or recorded operational actions. © OpenStreetMap contributors (ODbL).`:'Live MySQL data. Restaurant listings © OpenStreetMap contributors (ODbL).';
   const footer=document.querySelector('.footer');if(footer)footer.textContent=syntheticDemo?'BluePlate · SYNTHETIC DEMONSTRATION · OSM venue directory, no real performance data.':'BluePlate · MySQL data · Modeled metrics are estimates; not a verified delivery feed.';
  },
  notice(message){const el=$('bp-live-notice');if(el){el.textContent=String(message);el.classList.remove('bp-live-error');}else toast(String(message));},
@@ -1320,6 +1565,7 @@ window.BluePlateApp={
   state.restaurants=[];state.alerts=[];liveTrend=[];liveReports=[];liveReportTotals={};
   if(page==='admin'){
    liveHasObservations=null;
+   dashboardLoadedAt=null;
    $('bp-detail-dialog')?.close();
    renderAdmin();renderPeriodCaption();
   }else{
