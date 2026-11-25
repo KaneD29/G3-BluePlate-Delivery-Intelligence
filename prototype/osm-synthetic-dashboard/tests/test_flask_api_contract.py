@@ -375,8 +375,9 @@ def test_reporting_coverage(client, monkeypatch, operational_history, expected):
         db.executescript("""
             CREATE TABLE dim_restaurant (restaurant_key INTEGER, operational_status TEXT);
             CREATE TABLE vw_v8_restaurant_daily_signals (restaurant_key INTEGER, report_date TEXT);
-            CREATE TABLE app_user_reviews (submitted_at TEXT);
-            INSERT INTO app_user_reviews VALUES ('2020-11-20 23:59:59'), ('9999-12-31 00:00:00');
+            CREATE TABLE app_user_reviews (submitted_at TEXT, restaurant_key INTEGER);
+            INSERT INTO app_user_reviews VALUES ('2020-11-20 23:59:59', 1), ('9999-12-31 00:00:00', 1),
+                                              ('2021-01-01 00:00:00', NULL);
             INSERT INTO dim_restaurant VALUES (1, 'OPERATIONAL'), (2, 'CLOSED');
             INSERT INTO vw_v8_restaurant_daily_signals
             VALUES (2, '2020-11-19'), (1, NULL), (1, '9999-12-31');
@@ -648,3 +649,30 @@ def test_presentation_links_in_flask_modes(client, monkeypatch, mode, path):
         assert b'06_v8_oltp_migration.sql' in response.data
         assert b'07_v8_daily_analytics_view.sql' in response.data
     assert client.get("/database/06_v8_oltp_migration.sql").status_code == 404
+
+@pytest.mark.parametrize("unlisted", [
+    {"name": "Test"},
+    {"location": "Test"},
+    {"name": " ", "location": "Test"},
+    {"name": "Test", "location": "x" * 161},
+    {"name": "Test", "location": "Street", "type": chr(0)},
+    {"name": "Test", "location": "Street", "restaurant_key": 99},
+])
+def test_unlisted_guest_validation(client, pilot, monkeypatch, unlisted):
+    monkeypatch.setenv("BLUEPLATE_UNLISTED_REPORTS", "true")
+    payload = report(unlisted_restaurant=unlisted)
+    del payload["restaurant_key"]
+    assert submit(client, payload, guest_headers(client)).status_code == 400
+
+
+def test_unlisted_guest_rejects_both_identity_modes(client, pilot, monkeypatch):
+    monkeypatch.setenv("BLUEPLATE_UNLISTED_REPORTS", "true")
+    payload = report(unlisted_restaurant={"name": "Test", "location": "Street"})
+    assert submit(client, payload, guest_headers(client)).status_code == 400
+
+
+def test_unlisted_disabled_without_capability(client, pilot, monkeypatch):
+    monkeypatch.delenv("BLUEPLATE_UNLISTED_REPORTS", raising=False)
+    payload = report(unlisted_restaurant={"name": "Test", "location": "Street"})
+    del payload["restaurant_key"]
+    assert submit(client, payload, guest_headers(client)).status_code == 400

@@ -130,6 +130,7 @@ def migrate(db, seed, existing):
           payload JSON NOT NULL,csv_export LONGBLOB NOT NULL,published_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB""")
     sql(db,'13_versioned_bi.sql')
+    sql(db,'14_unlisted_guest_reports.sql')
     db.start_transaction()
     for table in VERSIONED[3:]:
         insert(db,table,seed[table])

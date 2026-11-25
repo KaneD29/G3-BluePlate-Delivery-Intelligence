@@ -7,3 +7,7 @@ The deployment seed omits all genuine guest data. The new installer supports a f
 Proposed commit message: `Prepare BluePlate Flask J.11 with versioned warehouse deployment`.
 
 Current cuisine and food-specialty display uses a reviewed vocabulary, separately from establishment type. Unresolved records display Not specified.
+
+## Step 7.15L follow-up
+
+Adds opt-in unlisted restaurant reporting and private identity review, while preserving the approved directory and modeled snapshots. Migration 14 is additive.

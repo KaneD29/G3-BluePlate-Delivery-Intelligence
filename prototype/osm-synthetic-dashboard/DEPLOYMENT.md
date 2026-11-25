@@ -21,3 +21,7 @@ For RDS set APP_DB_HOST to the RDS DNS hostname, configure APP_DB_TLS_CA with th
 Leave ENABLE_PRODUCTION_GUEST_REPORTS=false until HTTPS, secure and SameSite cookies, local origin checks, replaced proxy headers, Nginx rate limits, and Turnstile server-side verification have passed staging with the actual hostname. Do not log form tokens or report text. Use a private random Flask secret and Turnstile keys in the environment. Rate limiting is per Flask worker plus the ingress limiter, so the reference service uses one worker unless shared rate limiting has been designed and verified. Local test submissions are permitted only against disposable environments.
 
 Health checks: /api/health, /api/session (capabilities only), /api/dashboard/freshness and /dashboard/. Check database readiness, 274 public listings, 274 current model venues, and the historical 119-venue response. Never replace the existing public site until independent staging acceptance.
+
+## Unlisted restaurant reporting
+
+Apply the 7.15L upgrade in DATABASE_SETUP.md and enable BLUEPLATE_UNLISTED_REPORTS=true when ready. Exercise the listed and unlisted workflows on disposable staging with HTTPS, rate limits and Turnstile before opening collection. The Flask account keeps its existing SELECT and INSERT permissions. Assign review operations to a separate account and keep pending names, locations, and private comments out of logs and exports.

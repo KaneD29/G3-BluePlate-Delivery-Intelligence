@@ -366,7 +366,7 @@
       studentDashboardEnabled = warehouseFreshnessEnabled && Boolean(session.current_bi_model);
       demoEnabled = !liveRequired && session.synthetic_demo_enabled === true;
       if (demoEnabled && !window.BluePlateSynthetic) throw new Error("Synthetic module missing");
-      app.activateLive({guestEnabled, demoEnabled});
+      app.activateLive({guestEnabled, demoEnabled, unlistedEnabled:session.unlisted_reports_enabled===true});
       if (page === 'public' && guestEnabled && session.guest_challenge) configureChallenge(session.guest_challenge);
       if (page === 'admin') {
         if(studentDashboardEnabled&&app.configureCurrentModel){

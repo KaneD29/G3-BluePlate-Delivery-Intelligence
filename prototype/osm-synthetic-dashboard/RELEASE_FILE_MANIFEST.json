@@ -1,6 +1,6 @@
 {
-  "baseline": "933c0e26253af20216c08a5ad7cd3062912ddcf6",
-  "release": "Step 7.15J.11",
+  "baseline": "97e582ffc3667f1b1a458cf518fef2a3ab3e196f",
+  "release": "Step 7.15L",
   "inventory": [
     {
       "path": ".dockerignore",
@@ -11,8 +11,8 @@
     },
     {
       "path": ".env.example",
-      "sha256": "8e02272c43337849a6d9e043aa81c59272a0f47e889c63d1557f0f7086367975",
-      "bytes": 2165,
+      "sha256": "8963e2e13caa4bae8a48686b739e52e07e54be8c67c7fd689154b57c85c5f0ab",
+      "bytes": 2257,
       "application": true,
       "deployment": true
     },
@@ -39,8 +39,8 @@
     },
     {
       "path": "DATABASE_SETUP.md",
-      "sha256": "a273c1df4232c052e57fcd5504afd00174d194dbc89af2ba9eb9699273338f04",
-      "bytes": 2486,
+      "sha256": "23ce060a6d0ea990933e45fd3e1d40147e081af41b0cdebfbf21e01aad2e69b5",
+      "bytes": 3280,
       "application": false,
       "deployment": true
     },
@@ -53,8 +53,8 @@
     },
     {
       "path": "DEPLOYMENT.md",
-      "sha256": "4ce7c11075b18f84a38e10b613b62112153da8e3e03c9f6def614baf6892e2d0",
-      "bytes": 2659,
+      "sha256": "28fd6a4ffdf2f6515a63888e1388eb7d8bbab2d36d5b3cd12dcc6f5491ea175f",
+      "bytes": 3120,
       "application": false,
       "deployment": true
     },
@@ -88,8 +88,8 @@
     },
     {
       "path": "RELEASE_NOTES.md",
-      "sha256": "9c5b71b6472993a164a842c7781d2dcf4d522e7852fc0be92c955f89778f1149",
-      "bytes": 1114,
+      "sha256": "ab586a9e463a1324b8e5c00c8345162b853f117feb5c83b3da238923f7ab9894",
+      "bytes": 1300,
       "application": false,
       "deployment": true
     },
@@ -248,6 +248,13 @@
       "deployment": true
     },
     {
+      "path": "database/14_unlisted_guest_reports.sql",
+      "application": true,
+      "deployment": true,
+      "sha256": "be577448f9217d92169b53ff0a9a1f4a8189a85352b5fbdd508d710fd36c5849",
+      "bytes": 1712
+    },
+    {
       "path": "deployment/blueplate.service.example",
       "sha256": "681f9390f5d06c16f3082b590c9ee63790158a5c882d49c4b2002bc6198b6efa",
       "bytes": 468,
@@ -263,8 +270,8 @@
     },
     {
       "path": "docs/VERSIONED_BI_WAREHOUSE.md",
-      "sha256": "28fa97a2fda43201adbc01cea3c32e48add5b72cf7520eaebfde6aadbffb6985",
-      "bytes": 8291,
+      "sha256": "037f0b8c6b096202a7e25b3f16979e0bf7d773a42c2adc889fd6ba4292a642c4",
+      "bytes": 9555,
       "application": true,
       "deployment": true
     },
@@ -319,22 +326,22 @@
     },
     {
       "path": "frontend/admin/index.html",
-      "sha256": "49259c54fe5a232758dbb224130aa7d878fa5c57e533543bf7df57ca0906e0ae",
-      "bytes": 22865,
+      "sha256": "4b62adbd6a25ffccdffeace355305799f9659799820ecde202fbec0ccb81aa49",
+      "bytes": 23083,
       "application": true,
       "deployment": true
     },
     {
       "path": "frontend/assets/api-bridge.js",
-      "sha256": "3138c037652816f4200505fcdb40e9041fdd7eaed7f2c3b7f4fe51ef04d6f4e3",
-      "bytes": 20381,
+      "sha256": "053c00e102a34beca4b194f09a62a70f61df2f6e9e040cdca43fa7f34eed6ce8",
+      "bytes": 20438,
       "application": true,
       "deployment": true
     },
     {
       "path": "frontend/assets/app.js",
-      "sha256": "138282632132f97b7c722cb47c074b6567aeebf84b2d550a5b9e7f04adc33803",
-      "bytes": 153722,
+      "sha256": "8576a9706fb68380dc0e55c57ebc9b0e0c3cc1e40ea3f07465dca05fa6efb414",
+      "bytes": 155537,
       "application": true,
       "deployment": true
     },
@@ -361,22 +368,22 @@
     },
     {
       "path": "frontend/assets/style.css",
-      "sha256": "2f8bf29106dff03ffd3e133e25f199e23767625b5395afeebceb3562fc2dad12",
-      "bytes": 57416,
+      "sha256": "33fa95bacf4e2f7a1a93200fe81395e914c9017740962f18ef7a0f0f33e5ed03",
+      "bytes": 58190,
       "application": true,
       "deployment": true
     },
     {
       "path": "frontend/index.html",
-      "sha256": "f22dbaa7f9725a609d0657247ba340b9629ac5c255b3996a721722086d4b17a1",
-      "bytes": 10064,
+      "sha256": "d8ee6c3b89eff724ebb855417af41e70f46ad5b973224245c63d4ab675b08bb0",
+      "bytes": 11537,
       "application": true,
       "deployment": true
     },
     {
       "path": "release-files.txt",
-      "sha256": "61673494c8c524f7ef3dd5eb01c85128944f94703f62b112786f85a3b4d9d2f9",
-      "bytes": 1845,
+      "sha256": "793b90e6ec80905dc5cab1e45306aec118393046c82434ffb7dfa87a46e4857d",
+      "bytes": 1917,
       "application": true,
       "deployment": true
     },
@@ -438,8 +445,8 @@
     },
     {
       "path": "tests/test_flask_api_contract.py",
-      "sha256": "ca28b4c0ac7fa5d47dc9cd107451e8a7df8544fab08a861b073162e66a9aa56e",
-      "bytes": 30810,
+      "sha256": "3e3f9180a23c37b66c3633e0c36b6f62672ac79beb81c58be88275fd9d6e09f2",
+      "bytes": 32154,
       "application": true,
       "deployment": true
     },
@@ -480,8 +487,8 @@
     },
     {
       "path": "tools/install_warehouse.py",
-      "sha256": "0952ab34917a3e33824daef4a296f104e70f89eb78efff4d5140ce1ca14c3c21",
-      "bytes": 8202,
+      "sha256": "fbeea09e91cc0d2b5fc3e1d5bb3a9d9cad62483c43905c5bd5a74bf96349255f",
+      "bytes": 8246,
       "application": true,
       "deployment": true
     },
@@ -491,6 +498,13 @@
       "bytes": 5513,
       "application": true,
       "deployment": true
+    },
+    {
+      "path": "tools/review_unlisted_reports.py",
+      "application": true,
+      "deployment": true,
+      "sha256": "75d3dca56cb07c9560ebd7e955b0ed0c2a7ff336c7e045b84f411384da007ed8",
+      "bytes": 3651
     },
     {
       "path": "web_app_example/__init__.py",
@@ -508,8 +522,8 @@
     },
     {
       "path": "web_app_example/flask_db_connector.py",
-      "sha256": "db063a842e71331e4bc711ad36822fcf18ba1d7bd986811323d007f5b7009c0a",
-      "bytes": 61769,
+      "sha256": "8891ac4abd4a088ab586d8f41972bb8f8f07b4dbe13b3f78514a72f3e27d2ece",
+      "bytes": 65430,
       "application": true,
       "deployment": true
     },

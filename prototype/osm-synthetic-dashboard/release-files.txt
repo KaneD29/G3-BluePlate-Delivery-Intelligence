@@ -60,3 +60,5 @@ web_app_example/__init__.py
 web_app_example/api_helpers.py
 web_app_example/flask_db_connector.py
 web_app_example/production_guest.py
+database/14_unlisted_guest_reports.sql
+tools/review_unlisted_reports.py

@@ -12,6 +12,7 @@ import io
 import json
 import math
 import os
+import unicodedata
 import re
 import secrets
 from contextlib import contextmanager
@@ -216,7 +217,7 @@ def summarize_report_counts(row):
 def report_totals(db, period):
     totals, = fetch_all(db, f"""
         SELECT {REPORT_AGGREGATES} FROM app_user_reviews
-        WHERE submitted_at >= %s AND submitted_at < %s
+        WHERE restaurant_key IS NOT NULL AND submitted_at >= %s AND submitted_at < %s
     """, (period["start_datetime"], period["end_exclusive"]))
     summarize_report_counts(totals)
     return totals
@@ -330,7 +331,7 @@ def period_restaurants(db, period):
         LEFT JOIN (
             SELECT restaurant_key, {REPORT_AGGREGATES}
             FROM app_user_reviews
-            WHERE submitted_at >= %s AND submitted_at < %s
+            WHERE restaurant_key IS NOT NULL AND submitted_at >= %s AND submitted_at < %s
             GROUP BY restaurant_key
         ) ur ON ur.restaurant_key=r.restaurant_key
         WHERE r.operational_status = 'OPERATIONAL'
@@ -459,6 +460,10 @@ def readiness():
                 "SELECT alert_id, action_status FROM app_alert_acknowledgements LIMIT 0",
             ):
                 fetch_all(db, query)
+            if unlisted_reports_enabled():
+                fetch_all(db, """SELECT submitted_restaurant_name, submitted_restaurant_location,
+                    submitted_restaurant_type, submitted_location_details, restaurant_review_status
+                    FROM app_user_reviews LIMIT 0""")
             indexes = fetch_all(db, """
                 SELECT INDEX_NAME AS index_name, NON_UNIQUE AS non_unique,
                        SEQ_IN_INDEX AS position, COLUMN_NAME AS column_name, SUB_PART AS sub_part
@@ -569,7 +574,7 @@ def reporting_coverage():
                 JOIN dim_restaurant r ON r.restaurant_key = v.restaurant_key
                 WHERE r.operational_status = 'OPERATIONAL' {cohort} AND v.report_date <= %s
             ) AS latest_reporting_date, (
-                SELECT DATE(MAX(submitted_at)) FROM app_user_reviews WHERE submitted_at < %s
+                SELECT DATE(MAX(submitted_at)) FROM app_user_reviews WHERE restaurant_key IS NOT NULL AND submitted_at < %s
             ) AS latest_report_submission_date
         """, (today, today + timedelta(days=1)))
     return jsonify({"status": "ok", **normalize_json(rows[0]), "data_origin": "warehouse"})
@@ -588,7 +593,7 @@ def directory_coverage():
              WHERE r.bi_scope='LEGACY' AND r.operational_status='OPERATIONAL'
              AND v.date_key BETWEEN %s AND %s) AS modeled_venues,
             (SELECT COUNT(DISTINCT restaurant_key) FROM app_user_reviews
-             WHERE submission_source='GUEST' AND submitted_at >= %s AND submitted_at < %s)
+             WHERE restaurant_key IS NOT NULL AND submission_source='GUEST' AND submitted_at >= %s AND submitted_at < %s)
              AS guest_self_reported_venues""",
             (period["start_key"],period["end_key"],period["start_datetime"],period["end_exclusive"]))
     return jsonify({"status":"ok", **normalize_json(stats)})
@@ -718,6 +723,33 @@ def alerts():
     return jsonify({"status": "ok", "alerts": normalize_json(rows), "origin": "recorded warehouse alerts"})
 
 
+UNLISTED_FIELDS = (
+    ("name", "submitted_restaurant_name", 120),
+    ("location", "submitted_restaurant_location", 160),
+    ("type", "submitted_restaurant_type", 40),
+    ("location_details", "submitted_location_details", 240),
+)
+
+
+def unlisted_reports_enabled():
+    return os.getenv("BLUEPLATE_UNLISTED_REPORTS", "").lower() == "true"
+
+
+def parse_unlisted_restaurant(value):
+    if not isinstance(value, dict) or set(value) - {field for field, _, _ in UNLISTED_FIELDS}:
+        raise ValidationError("Invalid unlisted restaurant details")
+    result = []
+    for field, _, limit in UNLISTED_FIELDS:
+        text = value.get(field, "")
+        if not isinstance(text, str) or any(unicodedata.category(char) in {"Cc", "Cs"} for char in text):
+            raise ValidationError(f"Invalid unlisted restaurant {field}")
+        text = text.strip()
+        if len(text) > limit or (not text and field in {"name", "location"}):
+            raise ValidationError(f"Unlisted restaurant {field} must be within {limit} characters")
+        result.append(text or None)
+    return tuple(result)
+
+
 @app.post("/api/user/reviews")
 def submit_user_review():
     eligibility = guest_request()
@@ -740,7 +772,13 @@ def submit_user_review():
     if not visitor or token_visitor != visitor:
         return jsonify({"status": "error", "message": "Missing or expired guest form token"}), 403
     data = payload_json()
-    restaurant_key = positive_integer(data.get("restaurant_key", data.get("restaurantId")), "restaurant_key")
+    raw_key = data.get("restaurant_key", data.get("restaurantId"))
+    unlisted = None
+    if "unlisted_restaurant" in data:
+        if not unlisted_reports_enabled() or "restaurant_key" in data or "restaurantId" in data:
+            raise ValidationError("Choose exactly one restaurant reporting option")
+        unlisted = parse_unlisted_restaurant(data["unlisted_restaurant"])
+    restaurant_key = None if unlisted else positive_integer(raw_key, "restaurant_key")
     rating = positive_integer(data.get("rating_score", data.get("rating")), "rating_score", maximum=5)
     cancelled = data.get("order_was_cancelled", data.get("cancelled", False))
     if not isinstance(cancelled, bool):
@@ -770,41 +808,55 @@ def submit_user_review():
     report = (restaurant_key, minutes, cancelled, rating, text.strip())
     try:
         with connection() as db:
-            gate = (f"({directory_predicate()}) AND r.guest_reporting_enabled=TRUE"
-                    if expanded_directory() else "operational_status='OPERATIONAL'")
-            key, inserted = execute(db, f"""INSERT INTO app_user_reviews (
-                        user_id, submission_source, restaurant_key,
-                        actual_observed_delivery_mins, order_was_cancelled,
-                        rating_score, comment_text, client_submission_id
-                    ) SELECT NULL,'GUEST',restaurant_key,%s,%s,%s,%s,%s
-                    FROM {directory_relation()} r
-                    WHERE restaurant_key=%s AND {gate}""",
-                    (*report[1:], client_id, restaurant_key))
+            if unlisted:
+                key, inserted = execute(db, """INSERT INTO app_user_reviews (
+                    submission_source, actual_observed_delivery_mins, order_was_cancelled,
+                    rating_score, comment_text, client_submission_id, submitted_restaurant_name,
+                    submitted_restaurant_location, submitted_restaurant_type, submitted_location_details,
+                    restaurant_review_status
+                ) VALUES ('GUEST',%s,%s,%s,%s,%s,%s,%s,%s,%s,'PENDING')""",
+                    (*report[1:], client_id, *unlisted))
+            else:
+                gate = (f"({directory_predicate()}) AND r.guest_reporting_enabled=TRUE"
+                        if expanded_directory() else "operational_status='OPERATIONAL'")
+                key, inserted = execute(db, f"""INSERT INTO app_user_reviews (
+                            user_id, submission_source, restaurant_key,
+                            actual_observed_delivery_mins, order_was_cancelled,
+                            rating_score, comment_text, client_submission_id
+                        ) SELECT NULL,'GUEST',restaurant_key,%s,%s,%s,%s,%s
+                        FROM {directory_relation()} r
+                        WHERE restaurant_key=%s AND {gate}""",
+                        (*report[1:], client_id, restaurant_key))
     except mysql.connector.IntegrityError as error:
         if error.errno != ER_DUP_ENTRY:
             raise
         # Read after rollback, in a fresh transaction, to see the committed winner.
-        return guest_report_replay(client_id, report)
+        return guest_report_replay(client_id, report, unlisted)
     if not inserted:
         # An accepted report remains replayable if its venue subsequently closed.
-        return guest_report_replay(client_id, report)
+        return guest_report_replay(client_id, report, unlisted)
     return jsonify({"status": "created", "user_review_id": key,
+                    **({"unlisted_restaurant": True} if unlisted else {}),
                     "message": "Guest report stored in app_user_reviews"}), 201
 
 
-def guest_report_replay(client_id, report):
+def guest_report_replay(client_id, report, unlisted=None):
+    columns = ", " + ", ".join(column for _, column, _ in UNLISTED_FIELDS) if unlisted_reports_enabled() else ""
     with connection() as db:
-        rows = fetch_all(db, """SELECT user_review_id, submission_source, restaurant_key,
-                    actual_observed_delivery_mins, order_was_cancelled, rating_score, comment_text
+        rows = fetch_all(db, f"""SELECT user_review_id, submission_source, restaurant_key,
+                    actual_observed_delivery_mins, order_was_cancelled, rating_score, comment_text{columns}
                 FROM app_user_reviews WHERE client_submission_id=%s""", (client_id,))
     if not rows:
         raise ValidationError("Unknown or inactive restaurant_key")
     row = rows[0]
-    stored = (row["restaurant_key"], row["actual_observed_delivery_mins"],
+    original = tuple(row.get(column) for _, column, _ in UNLISTED_FIELDS)
+    recorded_unlisted = any(value is not None for value in original)
+    stored = (None if recorded_unlisted else row["restaurant_key"], row["actual_observed_delivery_mins"],
               row["order_was_cancelled"], row["rating_score"], row["comment_text"])
-    if row["submission_source"] != "GUEST" or stored != report:
+    if row["submission_source"] != "GUEST" or stored != report or (original if recorded_unlisted else None) != unlisted:
         return jsonify({"status": "error", "message": "Submission UUID already used for another report"}), 409
-    return jsonify({"status": "replayed", "user_review_id": row["user_review_id"]})
+    return jsonify({"status": "replayed", "user_review_id": row["user_review_id"],
+                    **({"unlisted_restaurant": True} if unlisted else {})})
 
 
 @app.get("/api/manager/actions")
@@ -916,7 +968,7 @@ def export_reports():
         rows = fetch_all(db, """SELECT user_review_id, restaurant_key, submission_source,
                    actual_observed_delivery_mins, order_was_cancelled,
                    rating_score, comment_text, submitted_at
-                FROM app_user_reviews WHERE submitted_at >= %s AND submitted_at < %s
+                FROM app_user_reviews WHERE restaurant_key IS NOT NULL AND submitted_at >= %s AND submitted_at < %s
                 ORDER BY submitted_at DESC LIMIT 10000""",
                 (period["start_datetime"], period["end_exclusive"]))
     headers = ["user_review_id", "restaurant_key", "submission_source",
@@ -932,6 +984,7 @@ def session_info():
     capabilities = {
         "status": "ok", "mode": "live-mysql",
         "guest_reports_enabled": eligibility is not None,
+        "unlisted_reports_enabled": eligibility is not None and unlisted_reports_enabled(),
         "manager_actions_enabled": False,  # until server-side login/session support
         "synthetic_demo_enabled": (
             os.getenv("BLUEPLATE_ENV", "development").lower() != "production"
@@ -1073,7 +1126,7 @@ def current_bi_enabled():
 def warehouse_freshness(db):
     status, = fetch_all(db, """
         SELECT (SELECT MAX(report_date) FROM vw_bi_analytical_date) AS warehouse_as_of,
-               (SELECT MAX(submitted_at) FROM app_user_reviews WHERE submission_source='GUEST') AS latest_genuine_report,
+               (SELECT MAX(submitted_at) FROM app_user_reviews WHERE restaurant_key IS NOT NULL AND submission_source='GUEST') AS latest_genuine_report,
                (SELECT MAX(committed_at) FROM directory_publication_batch) AS directory_updated_at
     """)
     status["analytical_dates"] = fetch_all(db, """
@@ -1125,7 +1178,7 @@ def student_dashboard_period():
             ORDER BY a.report_date DESC,(m.metric_family='DELIVERY_SCENARIO') DESC,a.model_version DESC LIMIT 1
         """,(start,start,end))
         params = (start,start,end)
-        condition = "submission_source='GUEST' AND (%s IS NULL OR submitted_at >= %s) AND submitted_at < %s"
+        condition = "restaurant_key IS NOT NULL AND submission_source='GUEST' AND (%s IS NULL OR submitted_at >= %s) AND submitted_at < %s"
         totals, = fetch_all(db,f"""SELECT {REPORT_AGGREGATES}, COUNT(DISTINCT restaurant_key) AS reported_venues
                                 FROM app_user_reviews WHERE {condition}""",params)
         per_venue = fetch_all(db,f"""SELECT restaurant_key,{REPORT_AGGREGATES}
@@ -1138,6 +1191,11 @@ def student_dashboard_period():
                COUNT(*) AS total,MIN(actual_observed_delivery_mins) AS sort_minutes
                FROM app_user_reviews WHERE {condition} AND order_was_cancelled=0
                  AND actual_observed_delivery_mins BETWEEN 1 AND 240 GROUP BY label ORDER BY sort_minutes""",params)
+        if unlisted_reports_enabled():
+            pending, = fetch_all(db, """SELECT COUNT(*) AS pending_unlisted_reports
+                FROM app_user_reviews WHERE restaurant_review_status='PENDING'
+                AND (%s IS NULL OR submitted_at >= %s) AND submitted_at < %s""", params)
+            totals.update(pending)
         directory, = fetch_all(db,f"SELECT COUNT(*) AS public_listings FROM {directory_relation()} r WHERE {directory_predicate()}")
         closures, = fetch_all(db, """
             SELECT COUNT(*) AS reviewed_closures
@@ -1190,12 +1248,12 @@ def current_bi_model():
         coverage, = fetch_all(db, f"""
             SELECT (SELECT COUNT(*) FROM {directory_relation()} r WHERE {directory_predicate()}) AS public_listings,
                    COUNT(*) AS genuine_reports, COUNT(DISTINCT restaurant_key) AS genuine_report_venues
-            FROM app_user_reviews WHERE submission_source='GUEST'
+            FROM app_user_reviews WHERE restaurant_key IS NOT NULL AND submission_source='GUEST'
         """)
         totals, = fetch_all(db, f"""SELECT {REPORT_AGGREGATES}
-            FROM app_user_reviews WHERE submission_source='GUEST'""")
+            FROM app_user_reviews WHERE restaurant_key IS NOT NULL AND submission_source='GUEST'""")
         by_venue = fetch_all(db, f"""SELECT restaurant_key, {REPORT_AGGREGATES}
-            FROM app_user_reviews WHERE submission_source='GUEST' GROUP BY restaurant_key""")
+            FROM app_user_reviews WHERE restaurant_key IS NOT NULL AND submission_source='GUEST' GROUP BY restaurant_key""")
         annotations = current_cuisine_annotations(db) if revised_directory() else {}
     if annotations:
         for row in payload["restaurants"]:

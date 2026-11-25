@@ -22,13 +22,26 @@
   <details id="bp-privacy-details">
   <summary>Privacy &amp; Data Use</summary>
   <p>Guest feedback helps BluePlate summarize delivery experiences. Reports are voluntary, and a small sample cannot establish a restaurant’s overall performance.</p>
-  <p>The public feed and API can show the restaurant and zone, outcome, delivery time, rating, submission date and time, report type, and report reference. Quick notes and written details are stored with the report and omitted from the public feed and dashboard. Leave out personal information.</p>
+  <p>The public feed and API can show the restaurant and zone, outcome, delivery time, rating, submission date and time, report type, and report reference. Quick notes and written details are stored with the report and omitted from the public feed and dashboard. Leave out personal information. If your restaurant is missing, its submitted name and location stay private while the team reviews the listing.</p>
   <a data-flask-dashboard href="./admin/index.html#data-methodology">Data &amp; Methodology</a>
   </details>
 </div>
 <form id="audit-form">
 <fieldset id="bp-report-fields" class="bp-report-fields" aria-label="Delivery report fields">
-<div class="form-section"><h3><span class="step">01</span> Choose a restaurant</h3><label class="form-label" for="audit-restaurant">Restaurant or café</label><select id="audit-restaurant" class="form-control" required></select></div>
+<div class="form-section"><h3><span class="step">01</span> Choose a restaurant</h3><label class="form-label" for="audit-restaurant">Restaurant or café</label><select id="audit-restaurant" class="form-control" required></select>
+<div id="bp-unlisted-option" hidden>
+<button type="button" class="bp-unlisted-link" id="bp-unlisted-toggle" aria-expanded="false" aria-controls="bp-unlisted-fields"><span class="bp-unlisted-icon" aria-hidden="true">?</span><span id="bp-unlisted-label">Can't find your restaurant?</span></button>
+</div>
+<fieldset id="bp-unlisted-fields" class="bp-unlisted-fields" disabled hidden>
+<legend>Unlisted restaurant</legend>
+<p class="bp-restaurant-hint">Can't find your restaurant? You can still share your delivery experience.</p>
+<div class="form-row">
+<div><label class="form-label" for="bp-unlisted-name">Restaurant name</label><input id="bp-unlisted-name" class="form-control" maxlength="120" required></div>
+<div><label class="form-label" for="bp-unlisted-location">Branch or location</label><input id="bp-unlisted-location" class="form-control" maxlength="160" required placeholder="Street, mall, or neighborhood"></div>
+<div><label class="form-label" for="bp-unlisted-type">Restaurant type (optional)</label><input id="bp-unlisted-type" class="form-control" maxlength="40" placeholder="For example, café"></div>
+<div><label class="form-label" for="bp-unlisted-details">Additional location details (optional)</label><input id="bp-unlisted-details" class="form-control" maxlength="240" placeholder="A public landmark or intersection"></div>
+</div>
+</fieldset></div>
 <div class="form-section"><h3><span class="step">02</span> Delivery experience</h3><div class="form-row"><div><span class="form-label" id="audit-outcome-label">Order outcome</span><div class="radio-row" role="group" aria-labelledby="audit-outcome-label"><label><input type="radio" name="audit-cancelled" value="no" required><span>Delivered</span></label><label><input type="radio" name="audit-cancelled" value="yes"><span>Cancelled</span></label></div></div><div><label class="form-label" for="audit-minutes">Delivery time (minutes)</label><input type="number" min="1" max="240" step="1" id="audit-minutes" class="form-control" aria-describedby="minutes-hint" required><p class="small muted" id="minutes-hint" style="margin:6px 0 0">From placing the order to delivery</p></div></div></div>
 <div class="form-section"><h3><span class="step">03</span> Rate the experience</h3><label class="form-label" id="rating-label">Choose a rating from 1 to 5 stars</label><div class="stars" id="stars" role="group" aria-labelledby="rating-label"><button class="star" type="button" data-star="1" aria-label="1 star">★</button><button class="star" type="button" data-star="2" aria-label="2 stars">★</button><button class="star" type="button" data-star="3" aria-label="3 stars">★</button><button class="star" type="button" data-star="4" aria-label="4 stars">★</button><button class="star" type="button" data-star="5" aria-label="5 stars">★</button></div><input type="hidden" id="rating-value" value=""></div>
 <div class="form-section"><h3><span class="step">04</span> What stood out?</h3><p class="form-label" id="quick-notes-hint">Choose an outcome to see quick notes, or add a written detail.</p><div id="quick-notes" class="tag-list" role="group" aria-labelledby="quick-notes-hint"></div><label class="form-label" for="audit-details">Add details (optional if you select a quick note)</label><textarea id="audit-details" class="form-control" rows="4" maxlength="1000" placeholder="You can add context to your selected notes, such as where the rider arrived, what happened, or how long you waited."></textarea></div>

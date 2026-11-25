@@ -187,7 +187,7 @@ function initRestaurantAutocomplete(){
  hint.id='bp-restaurant-hint';
  hint.className='bp-restaurant-hint';
  input.setAttribute('aria-describedby',hint.id);
- hint.textContent='Type a name, cuisine, or UST street, then select a matching restaurant.';
+ hint.hidden=true;
  wrapper.append(input,menu,hint);
  select.insertAdjacentElement('afterend',wrapper);
  select.required=false; // The original ID select remains the source of truth for report submission.
@@ -196,13 +196,44 @@ function initRestaurantAutocomplete(){
  select.setAttribute('aria-hidden','true');
  const label=document.querySelector('label[for="audit-restaurant"]');
  if(label)label.htmlFor=input.id;
+ const unlistedOption=$('bp-unlisted-option');
+ const unlistedFields=$('bp-unlisted-fields');
+ const unlistedToggle=$('bp-unlisted-toggle');
+ const noMatches=document.createElement('p');
+ noMatches.className='bp-restaurant-hint';
+ noMatches.setAttribute('role','status');
+ noMatches.hidden=true;
+ if(unlistedOption)wrapper.append(unlistedOption);
+ wrapper.after(noMatches);
+ function setUnlisted(open){
+  if(!unlistedFields||!unlistedToggle)return;
+  unlistedFields.hidden=!open;
+  unlistedFields.disabled=!open;
+  input.disabled=open;
+  input.setAttribute('aria-required',String(!open));
+  unlistedToggle.setAttribute('aria-expanded',String(open));
+  $('bp-unlisted-label').textContent=open?'Use restaurant search instead':"Can't find your restaurant?";
+  if(open){
+   select.value='';
+   input.value='';
+   wrapper.classList.remove('is-selected');
+   hint.hidden=true;
+   noMatches.hidden=true;
+   setOpen(false);
+  }
+ }
+ unlistedToggle?.addEventListener('click',()=>{
+  const open=unlistedFields.hidden;
+  setUnlisted(open);
+  (open?$('bp-unlisted-name'):input).focus();
+ });
  let matches=[];
  let active=-1;
  const normalize=str=>String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase().trim();
  const setOpen=open=>{
   menu.classList.toggle('hidden',!open);
   input.setAttribute('aria-expanded',String(open));
-  if(!open){active=-1;input.removeAttribute('aria-activedescendant');}
+  if(!open){active=-1;input.removeAttribute('aria-activedescendant');noMatches.hidden=true;}
  };
  function highlight(index){
   active=index;
@@ -219,6 +250,7 @@ function initRestaurantAutocomplete(){
   select.value=String(restaurant.id);
   input.value=restaurant.name+(restaurant.branch?' · '+restaurant.branch:'');
   wrapper.classList.add('is-selected');
+  hint.hidden=false;
   hint.textContent=restaurant.operatingStatus==='UNKNOWN'?'Operating status unknown. Report only an order you actually placed.':'✓ Restaurant selected';
   setOpen(false);
  }
@@ -229,37 +261,37 @@ function initRestaurantAutocomplete(){
   active=-1;
   menu.replaceChildren();
   if(!matches.length){
-   const empty=document.createElement('div');
-   empty.className='bp-restaurant-no-matches';
-   empty.textContent=liveMode?'No matching database restaurants. Try another name or street.':'No matches in the demo restaurant list. Try another name or street.';
-   menu.append(empty);
-  }else{
-   const header=document.createElement('div');
-   header.className='bp-restaurant-menu-label';
-   header.textContent=term?'Matching restaurants':(liveMode?'Database restaurants':'Sample restaurants');
-   menu.append(header);
-   matches.forEach((r,i)=>{
-    const option=document.createElement('div');
-    option.className='bp-restaurant-choice';
-    option.id=`restaurant-option-${i}`;
-    option.setAttribute('role','option');
-    option.setAttribute('aria-selected','false');
-    option.tabIndex=-1;
-    const name=document.createElement('strong');
-    name.textContent=r.name;
-    const detail=document.createElement('span');
-    detail.textContent=[r.branch,r.cuisine,publicVenueLabel(r),r.zone?.replace('UST - ','')].filter(Boolean).join(' · ');
-    option.append(name,detail);
-    option.addEventListener('pointerdown',e=>e.preventDefault());
-    option.addEventListener('click',()=>selectRestaurant(r));
-    menu.append(option);
-   });
-   if(found.length>matches.length){
-    const more=document.createElement('div');
-    more.className='bp-restaurant-more';
-    more.textContent=`${found.length-matches.length} more — type to narrow results`;
-    menu.append(more);
-   }
+   setOpen(false);
+   noMatches.textContent='No matching restaurants.';
+   noMatches.hidden=false;
+   return;
+  }
+  noMatches.hidden=true;
+  const header=document.createElement('div');
+  header.className='bp-restaurant-menu-label';
+  header.textContent=term?'Matching restaurants':(liveMode?'Database restaurants':'Sample restaurants');
+  menu.append(header);
+  matches.forEach((r,i)=>{
+   const option=document.createElement('div');
+   option.className='bp-restaurant-choice';
+   option.id=`restaurant-option-${i}`;
+   option.setAttribute('role','option');
+   option.setAttribute('aria-selected','false');
+   option.tabIndex=-1;
+   const name=document.createElement('strong');
+   name.textContent=r.name;
+   const detail=document.createElement('span');
+   detail.textContent=[r.branch,r.cuisine,publicVenueLabel(r),r.zone?.replace('UST - ','')].filter(Boolean).join(' · ');
+   option.append(name,detail);
+   option.addEventListener('pointerdown',e=>e.preventDefault());
+   option.addEventListener('click',()=>selectRestaurant(r));
+   menu.append(option);
+  });
+  if(found.length>matches.length){
+   const more=document.createElement('div');
+   more.className='bp-restaurant-more';
+   more.textContent=`${found.length-matches.length} more — type to narrow results`;
+   menu.append(more);
   }
   setOpen(true);
  }
@@ -268,7 +300,7 @@ function initRestaurantAutocomplete(){
  input.addEventListener('input',()=>{
   select.value='';
   wrapper.classList.remove('is-selected');
-  hint.textContent='Choose a suggestion to confirm the restaurant.';
+  hint.hidden=true;
   render();
  });
  input.addEventListener('keydown',e=>{
@@ -286,8 +318,9 @@ function initRestaurantAutocomplete(){
  document.addEventListener('pointerdown',e=>{if(!wrapper.contains(e.target))setOpen(false);});
  select._bpFocus=()=>{input.focus();render();};
  select._bpClear=()=>{
+  setUnlisted(false);
   select.value='';input.value='';wrapper.classList.remove('is-selected');
-  hint.textContent='Type a name, cuisine, or UST street, then select a matching restaurant.';
+  hint.hidden=true;
   setOpen(false);
  };
 }
@@ -390,11 +423,18 @@ function submitPublic(e){
  if(guestSubmissionPending)return;
  reportError('');
  const restaurantId=+$('audit-restaurant').value;
+ const unlistedFields=$('bp-unlisted-fields');
+ const unlisted=liveMode&&!syntheticDemo&&unlistedFields&&!unlistedFields.hidden
+  ? {name:$('bp-unlisted-name').value.trim(),location:$('bp-unlisted-location').value.trim(),
+     type:$('bp-unlisted-type').value.trim(),location_details:$('bp-unlisted-details').value.trim()}
+  : null;
+ if(unlisted&&!unlisted.name){reportError('Enter the restaurant name.',()=>$('bp-unlisted-name').focus());return;}
+ if(unlisted&&!unlisted.location){reportError('Enter the branch or location.',()=>$('bp-unlisted-location').focus());return;}
  const outcome=document.querySelector('input[name="audit-cancelled"]:checked')?.value;
  const cancelled=outcome==='yes';
  const minutes=cancelled?null:Number($('audit-minutes').value);
  const details=$('audit-details').value.trim();
- if(!restaurantId){reportError('Choose a restaurant from the suggestions.',()=>$('audit-restaurant')._bpFocus?.());return;}
+ if(!restaurantId&&!unlisted){reportError('Choose a restaurant from the suggestions.',()=>$('audit-restaurant')._bpFocus?.());return;}
  if(outcome!=='yes'&&outcome!=='no'){reportError('Choose Delivered or Cancelled.',()=>document.querySelector('input[name="audit-cancelled"]').focus());return;}
  if(!cancelled&&(!Number.isInteger(minutes)||minutes<1||minutes>240)){
   reportError('Enter a delivery time between 1 and 240 whole minutes.',()=>$('audit-minutes').focus());return;
@@ -425,7 +465,7 @@ function submitPublic(e){
   if([...notes].length>1000){
    reportError('Keep quick notes and written details to 1,000 characters total.',()=>$('audit-details').focus());return;
   }
-  return submitGuestReport({restaurant_key:restaurantId,rating_score:selectedRating,
+  return submitGuestReport({...(unlisted?{unlisted_restaurant:unlisted}:{restaurant_key:restaurantId}),rating_score:selectedRating,
    order_was_cancelled:cancelled,actual_observed_delivery_mins:minutes,comment_text:notes});
  }
  const report={id:`report_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,restaurantId,cancelled,minutes,rating:selectedRating,notes:[...selectedNotes].join(', ')+(details?(selectedNotes.size?' · '+details:details):''),createdAt:new Date().toISOString()};
@@ -777,6 +817,7 @@ function renderStudentKpis(){
  return [
   ['Restaurants analyzed',String(studentPeriod.snapshot?rows.length:0),'Restaurants with estimates for the selected dates'],
   ['Addresses listed',String(rows.filter(r=>r.streetAddress).length),'Based on restaurant information in this view'],
+  ...(Number.isInteger(t.pending_unlisted_reports)?[['Unlisted reports pending review',t.pending_unlisted_reports,'Counted separately from restaurant and zone results']]:[]),
   ...(studentPeriod.snapshot&&!currentModel?[
    ['Earlier modeled order count',rows.reduce((sum,r)=>sum+(r.orderCount||0),0).toLocaleString(),'Original model assumes 25 orders per restaurant per day'],
   ]:[]),
@@ -1873,7 +1914,7 @@ function showSubmissionConfirmation(report,restaurant,stored){
  const liveReceipt=liveMode&&!syntheticDemo;
  const title=liveReceipt?(report.status==='replayed'?'Report already saved':'Report saved'):'Practice report added';
  const details=liveReceipt?
-  `<p class="bp-success-sub">Report reference <strong>#${html(report.user_review_id)}</strong></p>`:
+  `<p class="bp-success-sub">Report reference <strong>#${html(report.user_review_id)}</strong></p>${report.unlisted_restaurant?'<p>Your restaurant details will be reviewed separately.</p>':''}`:
   `<p class="bp-success-sub">${stored?'This practice report is saved in this browser.':'Browser storage was unavailable. This practice report is available for this session.'}</p>
    <dl><div><dt>Restaurant</dt><dd>${html(restaurant.name)}</dd></div><div><dt>Outcome</dt><dd class="${report.cancelled?'bp-result-cancelled':'bp-result-delivered'}">${report.cancelled?'Cancelled':'Delivered'}</dd></div><div><dt>Delivery time</dt><dd>${report.cancelled?'Not applicable':Number(report.minutes)+' min'}</dd></div><div><dt>Rating</dt><dd>${Number(report.rating)}/5 ★</dd></div><div><dt>Browser time</dt><dd>${html(formatDateTime(report.createdAt))}</dd></div></dl>`;
  card.innerHTML=`<div class="bp-success-icon" aria-hidden="true">✓</div><h3 tabindex="-1" id="bp-success-heading">${title}</h3>${details}
@@ -1893,13 +1934,14 @@ function liveNotice(){
  return notice;
 }
 window.BluePlateApp={
- activateLive({guestEnabled=false,demoEnabled=false}={}){
+ activateLive({guestEnabled=false,demoEnabled=false,unlistedEnabled=false}={}){
   liveMode=true;syntheticDemo=!!demoEnabled;liveGuestEnabled=!!guestEnabled && !syntheticDemo;liveError=liveRequired?'Connecting…':'';
   state.restaurants=[];state.alerts=[];liveReports=[];liveTrend=[];liveReportTotals={};modeledHistory.clear();
   document.querySelectorAll('.header-chip').forEach(el=>el.textContent=liveRequired?(page==='admin'?'Delivery dashboard':'Delivery reports'):(page==='admin'?'Delivery dashboard':'Delivery reports'));
   const notice=liveNotice();
   notice.textContent=liveRequired?'Loading dashboard data…':'Loading delivery information…';
   if(page==='public'){
+   const unlistedOption=$('bp-unlisted-option');if(unlistedOption)unlistedOption.hidden=!(liveGuestEnabled&&unlistedEnabled);
    const subtitle=document.querySelector('.public-form .subtitle');
    if(subtitle)subtitle.textContent=syntheticDemo?'Practice reports stay in this browser. Leave out personal information.':'Choose a restaurant and describe one order.';
    $('bp-report-privacy').hidden=syntheticDemo;
