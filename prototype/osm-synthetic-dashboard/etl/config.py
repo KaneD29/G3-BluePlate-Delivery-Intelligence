@@ -19,7 +19,7 @@ def database_config(prefix="MYSQL"):
         if from_env is not None:
             return from_env
         return os.getenv(f"MYSQL_{field}", default)
-    return {
+    config = {
         "host": value("HOST", "127.0.0.1"),
         "port": int(value("PORT", "3306")),
         "user": value("USER", ""),
@@ -27,6 +27,10 @@ def database_config(prefix="MYSQL"):
         "database": value("DATABASE", "blueplate_dw"),
         "connection_timeout": 10,
     }
+    ca = value("TLS_CA", "")
+    if ca:
+        config.update(ssl_ca=ca, ssl_verify_cert=True, ssl_verify_identity=True)
+    return config
 
 
 DB_CONFIG = database_config("MYSQL")  # Existing ETL import remains compatible.

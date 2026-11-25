@@ -1,0 +1,17 @@
+[Unit]
+Description=BluePlate Flask application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=blueplate
+Group=blueplate
+WorkingDirectory=/opt/blueplate
+EnvironmentFile=/etc/blueplate/blueplate.env
+ExecStart=/opt/blueplate/.venv/bin/gunicorn --workers 1 --threads 4 --bind 127.0.0.1:5000 --forwarded-allow-ips= web_app_example.flask_db_connector:app
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

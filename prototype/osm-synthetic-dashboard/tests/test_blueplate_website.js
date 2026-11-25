@@ -58,7 +58,7 @@ function testChart(trend, chartAvailable=true, dark=false){
  const palette=dark?{ink:'#d7e5f7',grid:'#526780',axis:'#8da5c3',blue:'#79aaff',teal:'#65d5bb'}:
   {ink:'#334760',grid:'#c2cfdf',axis:'#8498b0',blue:'#3772e9',teal:'#007e74'};
  const ctx={
-  liveMode:true,syntheticDemo:false,liveTrend:trend,charts:[],Chart:chartAvailable?MockChart:undefined,
+  liveMode:true,syntheticDemo:false,currentModel:null,liveTrend:trend,charts:[],Chart:chartAvailable?MockChart:undefined,
   document:{createElement:()=>({})},
   getComputedStyle:()=>({getPropertyValue:name=>palette[name.slice(8)]}),
   $:id=>elements[id],
@@ -105,7 +105,7 @@ const coverageStart=source.indexOf('function renderDirectoryCoverage(');
 const coverageEnd=source.indexOf('function reportMetrics(',coverageStart);
 const coveragePanel={};
 vm.runInNewContext(source.slice(coverageStart,coverageEnd)+'\nrenderDirectoryCoverage();',{
- $:()=>coveragePanel,liveMode:true,syntheticDemo:false,html:String,
+ $:()=>coveragePanel,liveMode:true,syntheticDemo:false,currentModel:null,html:String,
  state:{restaurants:[{cuisine:'Unclassified / Pending Review',zone:'UST',streetAddress:''}]}
 });
 assert.match(coveragePanel.innerHTML,/<strong>1<\/strong><span>unclassified cuisine<\/span>/);
@@ -135,7 +135,7 @@ assert.match(many[3][2],/1 cancelled out of 5/);
 const directoryStart=source.indexOf('function directoryRows()');
 const directoryEnd=source.indexOf('function chartTheme()',directoryStart);
 const controls=Object.fromEntries([
- 'directory-search','filter-zone','filter-health','filter-cuisine','restaurant-count','filter-summary',
+ 'directory-search','filter-zone','filter-health','filter-cuisine','filter-street','restaurant-count','filter-summary',
  'directory-rows','bp-directory-pagination','bp-directory-prev','bp-directory-next','bp-directory-position'
 ].map(id=>[id,{value:'ALL',focus(){this.focused=true;}}]));
 controls['directory-search'].value='';
@@ -145,7 +145,7 @@ let listings=Array.from({length:119},(_,i)=>({
  avgPricePhp:i===0?125:null,eta:null,cancellationProxyPct:null,publicRating:4.3,warehouseRatingDays:0,
  selfReportedRating:i===0?5:null,reportRatingCount:i===0?1:0
 }));
-const directoryContext={...metricContext,$:id=>controls[id],enriched:()=>listings,html:String,
+const directoryContext={...metricContext,currentModel:null,$:id=>controls[id],enriched:()=>listings,html:String,
  liveMode:true,syntheticDemo:false,dateRangeLabel:()=> '2026-11-15'};
 vm.runInNewContext(`const DIRECTORY_PAGE_SIZE=10;let directoryPage=1,sortBy='default';\n`+
  source.slice(metricsStart,metricsEnd)+source.slice(directoryStart,directoryEnd),directoryContext);
@@ -186,7 +186,7 @@ assert.equal(controls['bp-directory-position'].textContent,'No matching results'
 
 const kpiFields={kpis:{},'executive-summary':{}};
 const kpiSource=source.slice(metricsStart,source.indexOf('function demoAlerts()',metricsEnd));
-const kpiContext={...metricContext,$:id=>kpiFields[id],html:String,badge:()=>'',liveMode:true,syntheticDemo:false,
+const kpiContext={...metricContext,$:id=>kpiFields[id],html:String,badge:()=>'',liveMode:true,syntheticDemo:false,currentModel:null,
  liveTrend:[{date:'2026-11-15'}],periodPreset:'latest',liveReportTotals:{},state:{alerts:[]},
  enriched:()=>[{zone:'UST',cuisine:'Cafe',streetAddress:'',eta:15.67,cancellationProxyPct:3.35,publicRating:null,selfReportedRating:null}]};
 vm.runInNewContext(kpiSource,kpiContext);

@@ -48,9 +48,15 @@
     return {
       id: Number(row.restaurant_key), name, branch, zone,
       externalPlaceId: String(row.external_place_id || ''),
-      streetAddress: hasAddress ? address : '',
+      streetAddress: (row.verification_provenance ? address : hasAddress ? address : ''),
       branchLabel: String(row.branch_label || ''),
-      cuisine: String(row.cuisine_name || 'Unclassified'),
+      cuisine: String(row.cuisine_classification?.label || row.cuisine_name || (row.verification_provenance ? 'Not specified' : 'Unclassified')),
+      cuisineClassification:row.cuisine_classification||null,
+      verificationProvenance: row.verification_provenance || null,
+      operatingStatus: row.operational_status || null,
+      confirmedOn: row.confirmed_on || null,
+      osmHours: row.osm_opening_hours || null,
+      guestReportingEligible: row.guest_reporting_eligible === undefined || Boolean(row.guest_reporting_eligible),
       nearestGate: distance === null ? 'Distance unavailable' : `${zone.replace('UST - ', '')} (${distance.toFixed(2)} km)`,
       distance,
       priceRange: price === null ? 'Price unavailable' : `₱${price.toFixed(0)} modeled average`,
@@ -91,14 +97,81 @@
     }
     return output;
   }
+  let expandedDirectoryEnabled = false;
+  let warehouseFreshnessEnabled = false;
+  let studentDashboardEnabled = false;
+  let displayedSelection;
+  async function refreshCurrentModel(id, student=null) {
+    const date=student?student.snapshot.report_date:app.scenarioDate?.();
+    const data = await request('/api/dashboard/model/current'+(date?'?date='+encodeURIComponent(date):''));
+    if (id !== revision) return;
+    const snapshot = data.snapshot;
+    if (!Array.isArray(snapshot?.restaurants) || !Array.isArray(data.reports_by_venue)) {
+      throw new Error('Invalid published model');
+    }
+    const reported = new Map((student?.reports_by_venue||data.reports_by_venue).map(row => [Number(row.restaurant_key), row]));
+    const restaurants = snapshot.restaurants.map(row => ({
+      ...restaurant({
+        ...reported.get(row.restaurant_key),
+        restaurant_key: row.restaurant_key, external_place_id: row.external_place_id,
+        restaurant_name: row.name, street_address: row.address, zone_name: 'Zone '+row.distance_zone+' — '+row.distance_zone_name,
+        distance_to_ust_km: row.distance_m/1000, cuisine_name: row.cuisine_classification?.label || row.cuisine_osm || 'Not specified',
+        cuisine_classification:row.cuisine_classification,
+        verification_provenance: row.operating_provenance, operational_status: row.operating_status,
+        proxy_delivery_mins: row.modeled_eta_high_min,
+      }),
+      etaLow:row.modeled_eta_low_min, etaHigh:row.modeled_eta_high_min,
+      transitStress:row.eta_stress_index_points, areas:row.address_clusters,
+      demand:{low:row.hypothetical_demand_low,base:row.hypothetical_demand_base,high:row.hypothetical_demand_high},
+      genuineTotals:reported.get(row.restaurant_key)||{},
+    })).sort((a,b)=>a.distance-b.distance||a.name.localeCompare(b.name)||a.id-b.id);
+    app.setAdmin({restaurants, alerts:[], trend:[], hasObservations:true,
+      reportTotals:student?.report_totals||data.report_totals, directoryCoverage:data.coverage, model:snapshot, student});
+  }
+
+  async function refreshStudentDashboard(id, range) {
+    const selection=await request('/api/dashboard/student-period?'+(app.isLatestAvailable()?'latest=1':qrange(range)));
+    if(id!==revision)return;
+    const snapshot=selection.snapshot;
+    displayedSelection=snapshot;
+    if(snapshot?.metric_family==='DELIVERY_SCENARIO')return refreshCurrentModel(id,selection);
+    const reports=new Map(selection.reports_by_venue.map(row=>[Number(row.restaurant_key),row]));
+    const genuine=row=>{
+      const data=reports.get(Number(row.id))||{};
+      return {...row,genuineTotals:data,reportCount:data.auditor_report_count||0,
+        selfReportedRating:numberOrNull(data.auditor_avg_rating),verified:numberOrNull(data.observed_delivery_mins)};
+    };
+    let venues,alerts=[];
+    if(snapshot){
+      const date=snapshot.report_date, query=qrange({from:date,to:date});
+      const [overview, notices]=await Promise.all([request('/api/dashboard/overview?'+query),request('/api/dashboard/alerts?'+query)]);
+      venues=uniqueRestaurants(overview.restaurants.map(restaurant)).map(genuine);
+      alerts=notices.alerts.map(a=>({id:a.alert_id,restaurant:a.restaurant_name,zone:a.zone_name,severity:a.severity_level,
+        message:a.alert_message,timestamp:dateOnly(a.created_at),status:a.workflow_status}));
+    }else{
+      venues=(await fetchDirectory()).map(genuine);
+    }
+    if(id!==revision)return;
+    app.setAdmin({restaurants:venues,alerts,trend:[],reportTotals:selection.report_totals,student:selection,
+      hasObservations:Boolean(snapshot)||selection.report_totals.auditor_report_count>0});
+  }
+
   async function refreshAdmin(range) {
     const id = ++revision;
     const query = qrange(range);
     try {
-      const [ov, alerts, trends] = await Promise.all([
+      if (warehouseFreshnessEnabled) {
+        request('/api/dashboard/freshness').then(data=>{
+          if (id===revision) app.setWarehouseFreshness(data);
+        }).catch(()=>{if (id===revision) app.setWarehouseFreshness(null);});
+      }
+      if (studentDashboardEnabled) return await refreshStudentDashboard(id,range);
+      if (app.wantsCurrentModel?.()) return await refreshCurrentModel(id);
+      const [ov, alerts, trends, coverage] = await Promise.all([
         request(`/api/dashboard/overview?${query}`),
         demoEnabled ? Promise.resolve({alerts: []}) : request(`/api/dashboard/alerts?${query}`),
-        demoEnabled ? Promise.resolve({days: []}) : request(`/api/dashboard/trends?${query}`)
+        demoEnabled ? Promise.resolve({days: []}) : request(`/api/dashboard/trends?${query}`),
+        expandedDirectoryEnabled ? request(`/api/dashboard/directory-coverage?${query}`) : null
       ]);
       if (id !== revision) return;
       if (!Array.isArray(ov.restaurants) || !Array.isArray(alerts.alerts) || !Array.isArray(trends.days) ||
@@ -113,6 +186,7 @@
         hasObservations: trends.days.length > 0 ||
           Number(ov.report_totals?.auditor_report_count) > 0,
         reportTotals: ov.report_totals,
+        directoryCoverage: coverage,
         restaurants: uniqueRestaurants(preview.map(restaurant)),
         alerts: displayAlerts.map(a => ({
           id: Number(a.alert_id),
@@ -138,6 +212,7 @@
     }
   }
   async function refreshDashboard(allowDefault = false) {
+    if (studentDashboardEnabled||app.wantsCurrentModel?.()) return refreshAdmin(app.getRange());
     if (!demoEnabled) {
       const pending = ++coverageRevision;
       const initialRevision = revision;
@@ -173,6 +248,19 @@
       if (!periodUnchanged && before.from === after.from && before.to === after.to) return;
     }
     return refreshAdmin(app.getRange());
+  }
+  async function fetchDirectory() {
+    const all = [];
+    let offset = 0;
+    do {
+      const data = await request(`/api/restaurants?limit=100&offset=${offset}`);
+      if (!Array.isArray(data.restaurants)) throw new Error('Unexpected restaurants response');
+      all.push(...data.restaurants);
+      const next = data.next_offset;
+      if (next !== null && (!Number.isInteger(next) || next <= offset)) throw new Error('Invalid directory pagination');
+      offset = next;
+    } while (offset !== null);
+    return all.some(row => row.verification_provenance) ? all.map(restaurant) : uniqueRestaurants(all.map(restaurant));
   }
   async function refreshPublicReviews() {
     if (demoEnabled) {
@@ -245,7 +333,16 @@
       return;
     }
     if (which !== 'restaurants') return;
-    window.location.assign(`/api/exports/restaurants.csv?${qrange(range)}`);
+    if(studentDashboardEnabled){
+      if(!displayedSelection){app.notice('No estimates to export for these dates.');return;}
+      const date=displayedSelection.report_date;
+      window.location.assign(displayedSelection.metric_family==='DELIVERY_SCENARIO'
+        ?'/api/exports/model/current.csv?date='+encodeURIComponent(date)
+        :'/api/exports/restaurants.csv?'+qrange({from:date,to:date}));
+      return;
+    }
+    const date=app.scenarioDate?.();
+    window.location.assign(app.wantsCurrentModel?.() ? '/api/exports/model/current.csv'+(date?'?date='+encodeURIComponent(date):'') : `/api/exports/restaurants.csv?${qrange(range)}`);
   }
   window.BluePlateBridge = {refreshAdmin, refreshDashboard, refreshPublicReviews, submitReport, restaurantDetail, downloadCsv};
 
@@ -264,24 +361,31 @@
       const session = await request('/api/session');
       // Guest form tokens authorize a submission only in this browser session.
       guestEnabled = session.guest_reports_enabled === true;
+      expandedDirectoryEnabled = session.expanded_directory === true;
+      warehouseFreshnessEnabled = session.versioned_bi === true;
+      studentDashboardEnabled = warehouseFreshnessEnabled && Boolean(session.current_bi_model);
       demoEnabled = !liveRequired && session.synthetic_demo_enabled === true;
       if (demoEnabled && !window.BluePlateSynthetic) throw new Error("Synthetic module missing");
       app.activateLive({guestEnabled, demoEnabled});
       if (page === 'public' && guestEnabled && session.guest_challenge) configureChallenge(session.guest_challenge);
       if (page === 'admin') {
+        if(studentDashboardEnabled&&app.configureCurrentModel){
+          const params=new URLSearchParams(location.search);
+          if(params.get('model')==='legacy'&&!params.has('from')&&!params.has('to')){
+            const dates=await request('/api/dashboard/freshness').catch(()=>null);
+            if(dates){
+              app.setWarehouseFreshness(dates);
+              const earlier=dates.analytical_dates.find(row=>row.metric_family==='LEGACY_DAILY');
+              if(earlier){params.set('from',earlier.report_date);params.set('to',earlier.report_date);}
+            }
+          }
+          app.configureCurrentModel(true,params,true);
+        }else{
+          app.configureCurrentModel?.(Boolean(session.current_bi_model),new URLSearchParams(location.search));
+        }
         await refreshDashboard(true).catch(() => {});
       } else if (page === 'public') {
-        const all = [];
-        let offset = 0;
-        do {
-          const data = await request(`/api/restaurants?limit=100&offset=${offset}`);
-          if (!Array.isArray(data.restaurants)) throw new Error('Unexpected restaurants response');
-          all.push(...data.restaurants);
-          const next = data.next_offset;
-          if (next !== null && (!Number.isInteger(next) || next <= offset)) throw new Error('Invalid directory pagination');
-          offset = next;
-        } while (offset !== null);
-        demoRestaurants = uniqueRestaurants(all.map(restaurant));
+        demoRestaurants = await fetchDirectory();
         app.setPublic(demoRestaurants);
         await refreshPublicReviews();
       }

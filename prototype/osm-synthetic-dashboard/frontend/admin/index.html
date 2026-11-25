@@ -18,7 +18,7 @@
       </a>
       <nav class="workflow-nav" aria-label="BluePlate workflows">
         <a data-flask-home href="../index.html">Submit a Report</a>
-        <a data-flask-dashboard href="./index.html" aria-current="page">BI Dashboard</a>
+        <a data-flask-dashboard href="./index.html" aria-current="page">Dashboard</a>
       </nav>
       <div class="top-actions">
         <span class="header-chip">Admin demo</span>
@@ -53,7 +53,7 @@
   <div class="admin-layout">
     <aside class="sidebar">
       <nav class="sticky-sidebar" aria-label="Dashboard sections">
-        <p class="sidebar-label">Workspace</p>
+        <p class="sidebar-label">Dashboard</p>
         <button class="nav-link active" data-nav="overview" data-target="overview" type="button">
           <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Overview
         </button>
@@ -61,7 +61,7 @@
           <svg class="icon" viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg> Insights
         </button>
         <button class="nav-link" data-nav="alerts" data-target="alerts" type="button">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg> Alert Center
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg> Delivery notices
         </button>
         <button class="nav-link" data-nav="restaurants" data-target="restaurants" type="button">
           <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h5"/></svg> Restaurants
@@ -72,10 +72,10 @@
 
     <main class="main">
       <section id="overview">
-        <div class="section-tag">Operations overview</div>
+        <div class="section-tag">Overview</div>
         <div class="page-heading">
           <div>
-            <h1>Campus delivery operations</h1>
+            <h1>Delivery around UST</h1>
             <p id="executive-summary">Warehouse estimates and student delivery reports for UST Manila.</p>
           </div>
           <div class="page-actions">
@@ -83,25 +83,35 @@
           </div>
         </div>
         <div id="kpis" class="kpis"></div>
+        <p id="bp-directory-cohorts" class="small muted" hidden></p>
         <details id="bp-directory-coverage" class="bp-directory-coverage" hidden></details>
       </section>
 
       <section id="insights">
         <div class="section-head">
           <div>
-            <h2>Performance insights</h2>
-            <p>Comparisons and 7-day trends from warehouse telemetry.</p>
+            <h2>Delivery insights</h2>
+            <p>Explore delivery estimates, restaurant choices, and student feedback.</p>
           </div>
         </div>
         <div class="charts">
           <div class="chart-panel">
-            <h3>Delivery and risk by UST zone</h3>
+            <div class="bp-zone-heading"><h3>Delivery and risk by UST zone</h3>
+              <button type="button" id="bp-zone-info" class="tiny-btn bp-zone-info" aria-label="About the UST distance zones" aria-haspopup="dialog" aria-controls="bp-zone-dialog">ⓘ</button></div>
             <p>Modeled ETA and cancellation risk index</p>
             <div class="chart-box"><canvas id="zone-chart"></canvas></div>
           </div>
           <div class="chart-panel">
             <h3>Campus delivery trend</h3>
-            <p>Daily modeled demand and delivery minutes</p>
+            <p>Daily modeled demand and delivery minutes</p>        <div id="bp-model-controls" class="bp-scenario-dropdown" hidden>
+          <label for="bp-demand-scenario">Daily order scenario</label>
+          <select id="bp-demand-scenario" class="field">
+            <option value="low">Low — 1,500 orders</option>
+            <option value="base" selected>Base — 3,000 orders</option>
+            <option value="high">High — 4,500 orders</option>
+          </select>
+        </div>
+
             <div class="chart-box"><canvas id="trend-chart"></canvas></div>
           </div>
           <div class="chart-panel span2">
@@ -109,16 +119,26 @@
             <p>Average blended rating out of five stars</p>
             <div class="chart-box"><canvas id="cuisine-chart"></canvas></div>
           </div>
+          <div class="chart-panel bp-student-chart" hidden><h3>Delivery travel difficulty by zone</h3><p></p><div class="chart-box"><canvas id="student-stress-chart"></canvas></div></div>
+          <div class="chart-panel bp-student-chart" hidden><h3>Restaurants by zone</h3><p></p><div class="chart-box"><canvas id="student-zone-count-chart"></canvas></div></div>
+          <section class="chart-panel bp-student-chart bp-experiences span2" id="bp-student-experiences" aria-labelledby="bp-experiences-title" hidden>
+            <h3 id="bp-experiences-title">Student experiences</h3>
+            <div class="bp-experiences-grid">
+              <div id="student-rating-chart" class="bp-experience"></div>
+              <div id="student-delivery-chart" class="bp-experience"></div>
+            </div>
+          </section>
         </div>
       </section>
 
       <section id="alerts">
         <div class="section-head">
           <div>
-            <h2>Alert Center</h2>
-            <p>Operational notices and manager follow-ups.</p>
+            <div class="bp-notice-heading"><h2>Delivery notices</h2>
+            <button type="button" id="bp-notices-info" class="tiny-btn bp-metric-info" data-metric-info="notices" aria-label="About delivery notices" aria-haspopup="dialog" hidden>ⓘ</button></div>
+            <p>Updates from restaurant listings and student feedback.</p>
           </div>
-          <div class="tools">
+          <div class="tools" id="bp-alert-filter-tools">
             <select id="alert-filter" class="field" aria-label="Filter alerts">
               <option value="ALL">All alerts</option>
               <option value="CRITICAL">Critical</option>
@@ -206,6 +226,8 @@
                   <option value="WARNING">Warning</option>
                   <option value="CRITICAL">Critical</option>
                 </select>
+                <div id="bp-street-filter" hidden><label for="filter-street">Street or neighborhood</label>
+                <select id="filter-street" class="field"><option value="ALL">All areas</option></select></div>
                 <label for="filter-cuisine">Cuisine</label>
                 <select id="filter-cuisine" class="field">
                   <option value="ALL">All cuisines</option>
@@ -254,7 +276,8 @@
             Address and cuisine coverage depend on the available tags. <a href="https://www.openstreetmap.org/copyright">OSM attribution</a></li>
           <li><strong>Modeled warehouse estimates.</strong> ETA combines estimated travel time, cuisine-based preparation time,
             and four minutes for handoff. Demand assumes 25 orders per restaurant per day. These estimates are separate from actual orders
-            and student reports. Cancellation risk is a distance-based index in points. The menu price column shows modeled averages when available.</li>
+            and student reports. The legacy cancellation index is 2.5 + 2.2 × straight-line distance in kilometers, expressed in points. BluePlate does not observe live delivery-platform transactions. The historical menu price column shows modeled averages when available. The warehouse currently has no documented menu price snapshots.</li>
+          <li><strong>Current scenario snapshot.</strong> Straight-line Haversine distance from UST sets bands A (0–500 m), B (over 500–1,000 m), and C (over 1,000–1,500 m). Street and neighborhood filters are independent address labels. ETA uses a 1.35 route factor, 18 or 12 km/h rider speeds, 7 or 15 minutes of preparation and a four-minute handoff. Transit Stress Index compares conservative modeled travel time with a 15-minute budget. Demand is a hypothetical daily pool allocated equally. Current pricing, general delivery risk and cancellation probability are unavailable. The historical date uses the original fixed 25-order assumption.</li>
           <li><strong>Warehouse ratings.</strong> The sample count is the number of dates with an eligible warehouse rating for that restaurant.
             A date qualifies when it has a review count above zero and a rating from 1 to 5.</li>
           <li><strong>Self-reported observations.</strong> Student reports are a self-selected sample. Small samples describe those reports only.
@@ -266,16 +289,48 @@
             Reload dashboard data requests another view of existing records. ETL runs separately, and its execution time is unavailable on this dashboard.</li>
         </ul>
         <nav class="methodology-links" aria-label="Read-only SQL sources">
+          <a href="/dashboard/schema/versioned-bi.sql">Versioned BI schema</a>
+          <a href="/dashboard/schema/warehouse-methodology">Warehouse lineage and methodology</a>
           <a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/tree/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database">SQL schema directory</a>
           <a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/blob/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database/06_v8_oltp_migration.sql">Migration 06</a>
           <a href="https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/blob/ceb7a271ada825cfe721c3a9850b2ca74e093b86/prototype/osm-synthetic-dashboard/database/07_v8_daily_analytics_view.sql">Daily BI view 07</a>
         </nav>
       </details>
 
+
       <footer class="footer">BluePlate Delivery Intelligence · Connecting to MySQL warehouse…</footer>
     </main>
   </div>
 
+  <dialog id="bp-zone-dialog" class="bp-detail-dialog bp-zone-dialog bp-info-dialog" aria-labelledby="bp-zone-title">
+    <div class="bp-detail-content">
+      <div class="bp-detail-head"><h2 id="bp-zone-title">UST distance zones</h2>
+        <form method="dialog"><button type="submit" class="bp-detail-close" aria-label="Close zone information" autofocus>×</button></form>
+      </div>
+      <svg class="bp-zone-visual" viewBox="0 0 245 205" role="img" aria-labelledby="bp-zone-visual-title">
+        <title id="bp-zone-visual-title">Three concentric distance bands centered on UST, from Zone A to Zone C</title>
+        <circle class="bp-zone-c" cx="102" cy="102" r="93"/>
+        <circle class="bp-zone-b" cx="102" cy="102" r="62"/>
+        <circle class="bp-zone-a" cx="102" cy="102" r="31"/>
+        <circle cx="102" cy="102" r="4" fill="currentColor"/>
+        <text x="102" y="117" text-anchor="middle">UST</text>
+        <path d="M126 83H154 M153 64H182 M176 46H210" fill="none" stroke="currentColor"/>
+        <text x="156" y="87">A</text><text x="184" y="68">B</text><text x="212" y="50">C</text>
+      </svg>
+      <p id="bp-zone-scope" class="small muted"></p>
+      <ul class="bp-zone-legend">
+        <li><span class="bp-zone-swatch bp-zone-a"></span><strong>Zone A · Immediate Campus Area</strong><br>Within 500 meters of UST · <span id="bp-zone-count-a"></span></li>
+        <li><span class="bp-zone-swatch bp-zone-b"></span><strong>Zone B · Surrounding University Area</strong><br>More than 500 meters and up to 1 kilometer · <span id="bp-zone-count-b"></span></li>
+        <li><span class="bp-zone-swatch bp-zone-c"></span><strong>Zone C · Extended Delivery Area</strong><br>More than 1 kilometer and up to 1.5 kilometers · <span id="bp-zone-count-c"></span></li>
+      </ul>
+      <p class="small muted">Restaurants are grouped by their straight-line distance from UST. The zones help compare nearby and farther restaurants. Actual travel distances may differ depending on roads and delivery routes. Streets and neighborhoods are separate filters.</p>
+    </div>
+  </dialog>
+  <dialog id="bp-metric-dialog" class="bp-detail-dialog bp-info-dialog" aria-labelledby="bp-metric-title">
+    <div class="bp-detail-content"><div class="bp-detail-head"><h2 id="bp-metric-title"></h2>
+      <form method="dialog"><button type="submit" class="bp-detail-close" aria-label="Close explanation" autofocus>×</button></form>
+    </div><p id="bp-metric-explanation"></p></div>
+  </dialog>
   <div class="toast-wrap" id="toasts" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="../assets/sample-data.js"></script>

@@ -24,6 +24,8 @@ let directoryPage=1;
 let activeNav='overview';
 let scrollPending=false;
 let periodPreset='7d';
+let studentMode=false, studentPeriod=null;
+let currentModel=null, currentModelAvailable=false, demandScenario='base', warehouseFreshness=null;
 let customFrom='';
 let customTo='';
 let manualPeriodSelected=false;
@@ -44,7 +46,7 @@ let liveGuestEnabled=false;
 let pendingGuestReport;
 let guestSubmissionPending=false;
 let guestRetryAt=0;
-let liveError=liveRequired?'Connecting to the live warehouse…':'';
+let liveError=liveRequired?'Connecting…':'';
 const liveNumber=value=>value===null||value===undefined||value===''?null:(Number.isFinite(Number(value))?Number(value):null);
 const numberText=(v,d=1)=>Number.isFinite(v)?v.toFixed(d):'—';
 
@@ -111,7 +113,7 @@ function metrics(r){
    ...(syntheticDemo?{blendedRating:liveNumber(r.publicRating)}:{}),
    cancellationProxyPct:liveNumber(r.cancellationProxyPct),
    verified:liveNumber(r.verified),health:r.health||'UNKNOWN',
-   orderCount:liveNumber(r.orderCount),reportCount:Number(r.reportCount||0),hasPeriodData:true};
+   orderCount:liveNumber(currentModel?r.demand?.[demandScenario]:r.orderCount),reportCount:Number(r.reportCount||0),hasPeriodData:true};
  }
  const reviews=r.userReviews||[];
  const userRating=reviews.length?reviews.reduce((s,x)=>s+x.rating,0)/reviews.length:r.publicRating;
@@ -152,10 +154,16 @@ function initPublic(){const select=$('audit-restaurant');select.innerHTML='<opti
 }
 // Accessible, custom autocomplete for the public restaurant selector.
 // Suggestions use the current restaurant list, replaced by deduplicated MySQL records in live mode.
+function publicVenueLabel(venue){
+ if(!venue.verificationProvenance)return '';
+ if(venue.verificationProvenance==='USER_CONFIRMED')return 'Confirmed by our team';
+ if(venue.verificationProvenance==='INDEPENDENTLY_VERIFIED')return 'Open · Independently verified';
+ return 'Listed on OpenStreetMap · Opening status not confirmed';
+}
 function initRestaurantAutocomplete(){
  const select=$('audit-restaurant');
  if(!select || $('restaurant-search'))return;
- const restaurants=()=>state.restaurants.slice().sort((a,b)=>a.name.localeCompare(b.name));
+ const restaurants=()=>state.restaurants.filter(r=>r.guestReportingEligible!==false).sort((a,b)=>a.name.localeCompare(b.name));
  const wrapper=document.createElement('div');
  wrapper.className='bp-restaurant-picker';
  const input=document.createElement('input');
@@ -211,7 +219,7 @@ function initRestaurantAutocomplete(){
   select.value=String(restaurant.id);
   input.value=restaurant.name+(restaurant.branch?' · '+restaurant.branch:'');
   wrapper.classList.add('is-selected');
-  hint.textContent='✓ Restaurant selected';
+  hint.textContent=restaurant.operatingStatus==='UNKNOWN'?'Operating status unknown. Report only an order you actually placed.':'✓ Restaurant selected';
   setOpen(false);
  }
  function render(){
@@ -240,7 +248,7 @@ function initRestaurantAutocomplete(){
     const name=document.createElement('strong');
     name.textContent=r.name;
     const detail=document.createElement('span');
-    detail.textContent=[r.branch,r.cuisine,r.zone?.replace('UST - ','')].filter(Boolean).join(' · ');
+    detail.textContent=[r.branch,r.cuisine,publicVenueLabel(r),r.zone?.replace('UST - ','')].filter(Boolean).join(' · ');
     option.append(name,detail);
     option.addEventListener('pointerdown',e=>e.preventDefault());
     option.addEventListener('click',()=>selectRestaurant(r));
@@ -436,6 +444,39 @@ function renderPublicReviews(){
  }
  const recent=reviews().slice(0,12);$('recent-reviews').innerHTML=recent.length?recent.map(({r,rev})=>`<article class="review"><div class="review-head"><div><div class="review-name">${html(r.name)}</div><div class="review-meta">${html(r.zone.replace('UST - ',''))} · ${html(rev.time||'Sample report')}</div></div><span class="review-rating">${'★'.repeat(Math.min(5,rev.rating))}${'☆'.repeat(5-Math.min(5,rev.rating))}</span></div><p>${html(rev.note)}</p><div class="review-tags">${rev.cancelled?'Order cancelled':`${Number(rev.mins)} min delivery`} · ${html(rev.user==='Campus guest'?'Guest auditor':'Sample auditor')}</div></article>`).join(''):'<p class="muted">No reports have been added yet.</p>';}
 
+function initZoneInfo(){
+ const dialog=$('bp-zone-dialog');
+ const trigger=$('bp-zone-info');
+ trigger.onclick=()=>{
+  const counts={a:0,b:0,c:0};
+  for(const row of state.restaurants){
+   const distance=liveNumber(row.distance);
+   if(distance===null)continue;
+   const band=row.zone.match(/^Zone ([ABC]) —/)?.[1]?.toLowerCase()
+    ||(distance<=.5?'a':distance<=1?'b':distance<=1.5?'c':null);
+   if(band)counts[band]++;
+  }
+  for(const [key,count] of Object.entries(counts))$('bp-zone-count-'+key).textContent=`${count} ${count===1?'venue':'venues'}`;
+  $('bp-zone-scope').textContent=currentModel?'Counts for the estimates shown.':'Counts for the restaurants shown.';
+  dialog.showModal();
+ };
+ dialog.addEventListener('close',()=>trigger.focus());
+ const metric=$('bp-metric-dialog');
+ let opener;
+ document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-metric-info]');
+  if(!button)return;
+  opener=button;
+  const explanations={
+   notices:['About delivery notices','Updates are based on restaurant information, student feedback, and delivery estimates. They are not live delivery-platform alerts.'],
+   eta:['Estimated delivery time','This is an estimate of preparation, travel, and handoff time. Actual deliveries may take longer or shorter depending on traffic, weather, restaurant workload, and other conditions. The estimate does not use live traffic or weather.'],
+   stress:['Delivery travel difficulty','The Transit Stress Index compares estimated travel time with an assumed 15-minute travel budget. A higher score means more of the travel budget is needed. It does not predict whether an order will be late or canceled.'],
+  };
+  [$('bp-metric-title').textContent,$('bp-metric-explanation').textContent]=explanations[button.dataset.metricInfo];
+  metric.showModal();
+ });
+ metric.addEventListener('close',()=>opener?.focus());
+}
 function initAdmin(){document.querySelectorAll('.nav-link').forEach(btn=>{btn.onclick=()=>{scrollPending=true;activateNav(btn.dataset.nav);$(btn.dataset.target).scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>{scrollPending=false;syncNav();},1100);};});window.addEventListener('scroll',syncNav,{passive:true});
  if(!liveRequired)$('simulate-refresh').onclick=()=>{state.restaurants.forEach(r=>r.proxyDeliveryMins=Number(Math.max(15,r.proxyDeliveryMins+(Math.random()-.5)*1.3).toFixed(1)));initModeledHistory();renderAdmin();toast('Illustrative history regenerated locally. No API was contacted.');};
  $('alert-filter').onchange=renderAlerts;
@@ -445,16 +486,22 @@ function initAdmin(){document.querySelectorAll('.nav-link').forEach(btn=>{btn.on
  $('bp-directory-next').onclick=()=>changeDirectoryPage(1);
  // Replace Safari's native select with a compact six-category click-to-cycle menu.
  initCyclingSortMenu();
- $('filter-zone').onchange=renderDirectory;$('filter-health').onchange=renderDirectory;$('filter-cuisine').onchange=renderDirectory;$('filter-reset').onclick=()=>{$('filter-zone').value='ALL';$('filter-health').value='ALL';$('filter-cuisine').value='ALL';syncCompactSelects();closePopups();renderDirectory();};
+ $('filter-street').onchange=renderDirectory;
+ $('bp-demand-scenario').onchange=e=>{
+  demandScenario=e.target.value;
+  renderCharts();renderDirectory(true);
+ };
+ $('filter-zone').onchange=renderDirectory;$('filter-health').onchange=renderDirectory;$('filter-cuisine').onchange=renderDirectory;$('filter-reset').onclick=()=>{$('filter-zone').value='ALL';$('filter-health').value='ALL';$('filter-cuisine').value='ALL';$('filter-street').value='ALL';syncCompactSelects();closePopups();renderDirectory();};
  const cuisines=[...new Set(state.restaurants.map(r=>r.cuisine))].sort();$('filter-cuisine').innerHTML+=[...cuisines].map(c=>`<option value="${html(c)}">${html(c)}</option>`).join('');
  // Action Log fields are created before compact dropdowns are initialized.
  if(!liveRequired)initManagerActionLog();
  // Compact, accessible menus replace the native Safari option sheets.
  initCompactSelects();
  initPeriodToolbar();
+ initZoneInfo();
  initExportControls();
  initRestaurantDetails();
- $('insights').querySelector('.section-head p').textContent=liveRequired?'Date-filtered warehouse trends and report summaries.':'Period-specific comparisons and trends using illustrative data.';
+ $('insights').querySelector('.section-head p').textContent=liveRequired?'Compare delivery estimates, restaurant options, and student feedback.':'Period-specific comparisons and trends using illustrative data.';
  $('trend-chart').closest('.chart-panel').querySelector('p').textContent='Modeled demand and delivery minutes, grouped by reporting period.';
  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){e.preventDefault();openSearch();}});
  document.addEventListener('click',e=>{if(!e.target.closest('.tools')&&!e.target.closest('.bp-compact-select'))closePopups();if(!e.target.closest('.bp-compact-select'))closeCompactSelectMenus();});
@@ -506,6 +553,7 @@ function initCyclingSortMenu(){
    updateMenu();
    renderDirectory();
  });
+ pop.addEventListener('bp-reset-sort',()=>{activeCategory=null;phase=0;sortBy='default';updateMenu();});
  updateMenu();
 }
 // Reusable select enhancement for alerts, manager-note zones and restaurant filters.
@@ -520,7 +568,7 @@ function syncCompactSelects(){
  document.querySelectorAll('select.bp-native-select').forEach(s=>s._bpSync?.());
 }
 function initCompactSelects(){
- const ids=['alert-filter','note-zone','note-category','note-status','notes-filter-category','notes-filter-status','filter-zone','filter-health','filter-cuisine'];
+ const ids=['alert-filter','note-zone','note-category','note-status','notes-filter-category','notes-filter-status','filter-zone','filter-health','filter-cuisine','bp-demand-scenario'];
  const nameOverrides={
   'note-zone':{'UST - España Blvd':'España','UST - Dapitan St':'Dapitan','UST - P. Noval St':'P. Noval','UST - Lacson Ave':'Lacson'}
  };
@@ -658,13 +706,14 @@ function renderDirectoryCoverage(secondary=[]){
  const el=$('bp-directory-coverage');if(!el)return;
  el.hidden=!liveMode;if(!liveMode)return;
  const rows=state.restaurants;
+ if(currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod)){el.innerHTML='<summary>Coverage and supporting metrics</summary><dl class="bp-supporting-metrics">'+secondary.map(([label,value,description])=>`<div><dt>${html(label)}</dt><dd><strong>${html(value)}</strong><small>${html(description)}</small></dd></div>`).join('')+'</dl>';return;}
  const missingAddress=rows.filter(r=>!r.streetAddress).length;
  const warehouseRated=rows.filter(r=>Number.isFinite(syntheticDemo?r.recordedRating:r.publicRating)).length;
  const reportedRated=rows.filter(r=>Number.isFinite(r.selfReportedRating)).length;
  const unclassified=rows.filter(r=>/^Unclassified\b/i.test(r.cuisine)).length;
  const unassigned=rows.filter(r=>!r.zone||r.zone==='Unassigned zone').length;
  el.innerHTML='<summary>Coverage and supporting metrics</summary><div class="bp-coverage-grid">'+
-  [[rows.length,'current active listings'],[missingAddress,'without a recorded street address'],
+  [[rows.length,'legacy BI cohort'],[missingAddress,'without a recorded street address'],
    [unassigned,'without zone assignments'],[unclassified,'unclassified cuisine'],
    [warehouseRated,'with an eligible warehouse rating in period'],[reportedRated,'with a self-reported rating in period']]
   .map(([count,label])=>`<div><strong>${html(count)}</strong><span>${html(label)}</span></div>`).join('')+
@@ -692,7 +741,66 @@ function reportMetrics(report){
  ];
 }
 const reportMethodology='Reports are a self-selected sample. Small samples describe those submissions and cannot establish restaurant performance.';
+// Original warehouse planning cutoffs for modeled ETA (minutes).
+const ETA_GUIDE_MINUTES = {warning:35,critical:45};
+function modeledEtaGuide(minutes){
+ if(!Number.isFinite(minutes))return null;
+ if(minutes>=ETA_GUIDE_MINUTES.critical)return ['critical','45 min or more'];
+ if(minutes>=ETA_GUIDE_MINUTES.warning)return ['warning','35 to under 45 min'];
+ return ['normal','Under 35 min'];
+}
+function renderStudentKpis(){
+ const rows=enriched();
+ const avg=key=>{
+  const valid=rows.map(row=>row[key]).filter(Number.isFinite);
+  return valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:null;
+ };
+ const [low,high,stress]=['etaLow','etaHigh','transitStress'].map(avg);
+ const oldEta=studentPeriod.snapshot&&!currentModel?avg('eta'):null;
+ const etaGuide=modeledEtaGuide(high??oldEta);
+ const t=studentPeriod.report_totals;
+ const delivered=Number(t.completed_delivery_count||0),rating=Number(t.report_rating_count||0);
+ const value=(number,unit)=>number==null?'Not enough data':numberText(Number(number))+unit;
+ const cards=[
+  ['Restaurant options',studentPeriod.public_listings,'Restaurants listed within 1.5 km of UST.'],
+  ['Estimated delivery time',low!==null&&high!==null?`${Math.round(low)}–${Math.round(high)} min`:oldEta!==null?numberText(oldEta)+' min':'Not available',
+   oldEta!==null?'Average estimate from the earlier model.':'Average estimated delivery range based on distance and preparation time.','eta',etaGuide?(high!==null?'Based on the higher estimate':'Based on the earlier estimate'):null,etaGuide],
+  ['Delivery travel difficulty',stress===null?'Not available':numberText(stress)+' / 100','How much of the assumed travel-time budget is used.','stress'],
+  ['Reported delivery time',value(t.observed_delivery_mins,' min'),'Average delivery time shared by students.',null,sampleLabel(delivered,'completed delivery','completed deliveries')],
+  ['Student rating',value(t.auditor_avg_rating,' / 5'),'Average rating from submitted student experiences.',null,sampleLabel(rating,'rating')],
+  ['Student reports',t.auditor_report_count,`Feedback collected across ${t.reported_venues} ${t.reported_venues===1?'restaurant':'restaurants'}.`],
+ ];
+ $('kpis').innerHTML=cards.map(([name,result,description,info,sample,guide])=>`<article class="kpi${guide?' kpi--'+guide[0]:''}"><div class="bp-kpi-heading"><h3 class="k-label">${html(name)}</h3>
+  ${info?`<button type="button" class="tiny-btn bp-metric-info" data-metric-info="${info}" aria-haspopup="dialog" aria-label="About ${html(name.toLowerCase())}">ⓘ</button>`:''}</div>
+  <strong>${html(result)}</strong>${guide?`<span class="pill ${guide[0]} bp-kpi-guide"><span class="dot" aria-hidden="true"></span>${html(guide[1])}</span>`:''}<p class="k-caption">${html(description)}</p>${sample?`<small class="bp-kpi-sample">${html(sample)}</small>`:''}</article>`).join('');
+ $('executive-summary').textContent='Compare delivery estimates and see what UST students have shared.';
+ return [
+  ['Restaurants analyzed',String(studentPeriod.snapshot?rows.length:0),'Restaurants with estimates for the selected dates'],
+  ['Addresses listed',String(rows.filter(r=>r.streetAddress).length),'Based on restaurant information in this view'],
+  ...(studentPeriod.snapshot&&!currentModel?[
+   ['Earlier modeled order count',rows.reduce((sum,r)=>sum+(r.orderCount||0),0).toLocaleString(),'Original model assumes 25 orders per restaurant per day'],
+  ]:[]),
+  ...reportMetrics(t).slice(3),
+ ];
+}
 function renderKpis(){
+ if(typeof studentPeriod!=='undefined'&&studentPeriod)return renderStudentKpis();
+ if(currentModel){
+  const rows=enriched();
+  const mean=key=>rows.reduce((sum,row)=>sum+row[key],0)/rows.length;
+  const count=liveReportTotals.auditor_report_count||0;
+  const cards=[
+   ['Current public listings',currentModel.liveCoverage.public_listings,'Approved directory'],
+   ['Modeled coverage',rows.length,'Published scenario venues'],
+   ['Mean ETA range',`${mean('etaLow').toFixed(1)}–${mean('etaHigh').toFixed(1)} min`,'Modeled scenario endpoints'],
+   ['Mean Transit Stress Index',mean('transitStress').toFixed(1)+' points','Travel time against a 15-minute budget'],
+   ['Hypothetical orders per day',currentModel.demand_scenarios.pool[demandScenario].toLocaleString(),'Equal allocation across modeled venues'],
+   ['Genuine guest reports',count,`Across ${currentModel.liveCoverage.genuine_report_venues} reported venues`],
+  ];
+  $('kpis').innerHTML=cards.map(([name,value,sub])=>`<div class="kpi"><div class="k-label">${html(name)}</div><strong>${html(value)}</strong><div class="k-caption">${html(sub)}</div></div>`).join('');
+  $('executive-summary').textContent='Modeled delivery scenarios and genuine student reports for UST Manila.';
+  return reportMetrics(liveReportTotals);
+ }
  if(liveMode){
   const arr=enriched(), valid=key=>arr.map(r=>r[key]).filter(Number.isFinite), average=key=>{
     const v=valid(key);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
@@ -765,7 +873,41 @@ function demoAlerts(){
  }
  return list;
 }
+function renderStudentNotices(){
+ const t=studentPeriod.report_totals;
+ const count=Number(t.reported_venues||0), total=studentPeriod.public_listings;
+ const notices=[];
+ const add=(style,label,icon,title,text,date)=>notices.push({style,label,icon,title,text,date});
+ if(studentPeriod.snapshot){
+  const rows=enriched();
+  const long=rows.filter(row=>modeledEtaGuide(currentModel?row.etaHigh:row.eta)?.[0]!=='normal'
+   && Number.isFinite(currentModel?row.etaHigh:row.eta)).length;
+  if(long)add('caution','Estimate advisory','!', 'Allow extra time',
+   `${long} ${long===1?'restaurant has':'restaurants have'} an estimate of at least 35 minutes. Check the estimate before you order.`);
+  const budget=rows.filter(row=>row.transitStress>=100).length;
+  if(budget)add('caution','Estimate advisory','!','More estimated travel time',
+   `${budget} ${budget===1?'restaurant reaches':'restaurants reach'} the assumed travel-time budget. Check the estimate if you need delivery soon.`);
+ }
+ if(count<total)add(count?'info':'neutral','Student feedback','i', count?'Limited student feedback':'No student reports for these dates',
+  count?`Feedback is available for ${count} of ${total} restaurants. More reports will help improve our insights.`:
+   'Delivery estimates and restaurant listings can still help you compare options.');
+ const updated=warehouseFreshness?.directory_updated_at;
+ const date=updated?.slice(0,10), range=studentPeriod.period;
+ if(date&&(!range||(date>=range.from&&date<=range.to))){
+  const closed=Number(studentPeriod.reviewed_closures||0);
+  add('positive','Directory update','✓','Restaurant list updated',
+   closed?`${closed} previously listed ${closed===1?'restaurant was':'restaurants were'} removed following closure confirmations.`:'The latest restaurant listings are available.',date);
+ }
+ $('alerts-list').innerHTML=notices.length?notices.map(({style,label,icon,title,text,date})=>
+  `<article class="bp-student-notice bp-notice-${style}"><span class="bp-notice-icon" role="img" aria-label="${html(label)}">${html(icon)}</span><div><h3>${html(title)}</h3><p>${style==='caution'?'<span class="sr-only">Estimate advisory. </span>':''}${html(text)}</p>${date?`<time datetime="${html(date)}">${html(prettyManila(date))}</time>`:''}</div></article>`).join(''):
+  '<p class="empty">No delivery notices for these dates.</p>';
+}
 function renderAlerts(){
+ if(studentPeriod){renderStudentNotices();return;}
+ if(currentModel){
+  $('alerts-list').innerHTML='<div class="empty">This snapshot estimates transit stress. Operational alerts require observed inputs and remain in the historical view.</div>';
+  return;
+ }
  if(liveMode){
   const filter=$('alert-filter').value;
   const arr=state.alerts.filter(a=>filter==='ALL'||(filter==='OPEN'?a.status!=='RESOLVED':a.severity===filter));
@@ -1004,11 +1146,11 @@ function renderNotes(){
 }
 
 function directoryRows(){
- const query=$('directory-search').value.trim().toLocaleLowerCase(),zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value;
- let arr=enriched().filter(r=>(!query||[r.name,r.branch,r.streetAddress,r.cuisine,r.zone].some(s=>String(s||'').toLowerCase().includes(query)))&&(zone==='ALL'||r.zone===zone)&&(health==='ALL'||r.health===health)&&(cuisine==='ALL'||r.cuisine===cuisine));
+ const query=$('directory-search').value.trim().toLocaleLowerCase(),zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value,street=$('filter-street').value;
+ let arr=enriched().filter(r=>(!query||[r.name,r.branch,r.streetAddress,r.cuisine,r.zone].some(s=>String(s||'').toLowerCase().includes(query)))&&(zone==='ALL'||r.zone===zone)&&(health==='ALL'||r.health===health)&&(cuisine==='ALL'||r.cuisine===cuisine)&&(!currentModel||street==='ALL'||r.areas?.includes(street)));
  if(sortBy!=='default'){
   const sign=sortBy.endsWith('asc')?1:-1,type=sortBy.split('-')[0],priorities={NORMAL:0,WARNING:1,CRITICAL:2};
-  arr.sort((a,b)=>{if(liveMode && type!=='name'){const key={distance:'distance',price:'avgPricePhp',risk:'cancellationProxyPct',rating:'publicRating'}[type];if(key){const va=key==='distance'&&a[key]===999?null:a[key],vb=key==='distance'&&b[key]===999?null:b[key];if(va===null&&vb!==null)return 1;if(vb===null&&va!==null)return -1;}if(type==='health'){if(a.health==='UNKNOWN'&&b.health!=='UNKNOWN')return 1;if(b.health==='UNKNOWN'&&a.health!=='UNKNOWN')return -1;}}let d=0;switch(type){case'distance':d=a.distance-b.distance;break;case'name':d=a.name.localeCompare(b.name);break;case'price':d=a.avgPricePhp-b.avgPricePhp;break;case'risk':d=a.cancellationProxyPct-b.cancellationProxyPct;break;case'rating':d=liveMode?a.publicRating-b.publicRating:a.blendedRating-b.blendedRating;break;case'health':d=priorities[a.health]-priorities[b.health];break;}return d*sign||a.name.localeCompare(b.name);});
+  arr.sort((a,b)=>{if(liveMode && type!=='name'){const key={distance:'distance',price:'avgPricePhp',risk:'cancellationProxyPct',rating:currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod)?'selfReportedRating':'publicRating'}[type];if(key){const va=key==='distance'&&a[key]===999?null:a[key],vb=key==='distance'&&b[key]===999?null:b[key];if(va===null&&vb!==null)return 1;if(vb===null&&va!==null)return -1;}if(type==='health'){if(a.health==='UNKNOWN'&&b.health!=='UNKNOWN')return 1;if(b.health==='UNKNOWN'&&a.health!=='UNKNOWN')return -1;}}let d=0;switch(type){case'distance':d=a.distance-b.distance;break;case'name':d=a.name.localeCompare(b.name);break;case'price':d=a.avgPricePhp-b.avgPricePhp;break;case'risk':d=currentModel?a.transitStress-b.transitStress:a.cancellationProxyPct-b.cancellationProxyPct;break;case'rating':if(currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod)){if(a.selfReportedRating===null&&b.selfReportedRating!==null)return 1;if(b.selfReportedRating===null&&a.selfReportedRating!==null)return -1;}d=liveMode?((currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod))?a.selfReportedRating-b.selfReportedRating:a.publicRating-b.publicRating):a.blendedRating-b.blendedRating;break;case'health':d=priorities[a.health]-priorities[b.health];break;}return d*sign||a.name.localeCompare(b.name);});
  }
  return arr;
 }
@@ -1034,15 +1176,23 @@ function renderDirectory(keepPage=false){
  const arr=directoryPageRows(directoryRows()),query=$('directory-search').value.trim();
  const zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value;
  const labels={'default':liveMode?'Default order':'Original sample order','distance-asc':'Distance · closest first','distance-desc':'Distance · farthest first','name-asc':'Name · A to Z','name-desc':'Name · Z to A','price-asc':'Price · low to high','price-desc':'Price · high to low','risk-desc':'Risk · highest first','risk-asc':'Risk · lowest first','rating-desc':'Rating · highest first','rating-asc':'Rating · lowest first','health-desc':'Health · critical first','health-asc':'Health · normal first'};
- const filterCount=[zone,health,cuisine].filter(x=>x!=='ALL').length;
- $('filter-summary').textContent=`${dateRangeLabel()} · ${labels[sortBy]}${filterCount?` · ${filterCount} active ${filterCount===1?'filter':'filters'}`:''}${query?' · Search applied':''}`;
+ const filterCount=[zone,health,cuisine,$('filter-street').value].filter(x=>x!=='ALL').length;
+ $('filter-summary').textContent=`${currentModel?currentModel.snapshot_date_manila:dateRangeLabel()} · ${currentModel?labels[sortBy].replace('Risk','Transit stress'):labels[sortBy]}${filterCount?` · ${filterCount} active ${filterCount===1?'filter':'filters'}`:''}${query?' · Search applied':''}`;
  if(liveMode){
-  $('directory-rows').innerHTML=arr.length?arr.map(liveDirectoryRow).join(''):'<tr><td colspan="8" class="empty">No database restaurants match this search or filters.</td></tr>';
+  $('directory-rows').innerHTML=arr.length?arr.map(liveDirectoryRow).join(''):'<tr><td colspan="8" class="empty">No restaurants match your search or filters.</td></tr>';
   return;
  }
  $('directory-rows').innerHTML=arr.length?arr.map(r=>`<tr><td><button type="button" class="bp-restaurant-detail-link" data-restaurant-detail="${r.id}" aria-label="View performance details for ${html(r.name)}">${html(r.name)} <span aria-hidden="true">↗</span></button><div class="cell-sub">${html(r.cuisine)}</div></td><td>${html(r.zone.replace('UST - ',''))}<div class="cell-sub">${html(r.nearestGate.split(' (')[0])}</div></td><td>${r.distance.toFixed(2)} km</td><td>₱${r.avgPricePhp.toFixed(0)} avg<div class="cell-sub">${html(r.priceRange)}</div></td><td>${r.eta.toFixed(1)} min<div class="cell-sub">${r.verified===null?'Modeled estimate':`Auditor ${r.verified} min`}</div></td><td>${r.cancellationProxyPct.toFixed(1)}%</td><td>${r.blendedRating.toFixed(2)} ★</td><td>${badge(r.health)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">No restaurants match this date range, search, or filters.</td></tr>';
 }
 function liveDirectoryRow(r){
+ if(currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod))return `<tr class="bp-current-directory-row">
+
+  <td><button type="button" class="bp-restaurant-detail-link" data-restaurant-detail="${r.id}">${html(r.name)} <span aria-hidden="true">↗</span></button></td>
+  <td>${zoneTag(r)}<div class="cell-sub bp-directory-address">${html(r.streetAddress||'Address unavailable')}</div></td>
+  <td>${r.distance===999?'—':numberText(r.distance*1000,0)+' m'}</td><td>${currentModel?numberText(r.etaLow)+'–'+numberText(r.etaHigh)+' min':r.eta===null?'—':numberText(r.eta)+' min'}</td>
+  <td>${Number.isFinite(r.transitStress)?numberText(r.transitStress)+' / 100':'—'}</td><td>${numberText(r.orderCount,2)}</td>
+  <td>${r.selfReportedRating===null?'—':numberText(r.selfReportedRating,2)+' ★'}</td><td>${r.reportCount}</td>
+ </tr>`;
  const warehouseRating=(syntheticDemo||r.warehouseRatingDays>0)&&Number.isFinite(r.publicRating);
  const price=Number.isFinite(r.avgPricePhp)?`₱${numberText(r.avgPricePhp,0)}<div class="cell-sub">${syntheticDemo?'Synthetic average':'Modeled average'}</div>`:'Not available';
  const rating=warehouseRating?`${numberText(r.publicRating,2)} ★`:'Not available';
@@ -1058,6 +1208,10 @@ function liveDirectoryRow(r){
   <td>${r.health==='UNKNOWN'?'<span class="pill unknown">Unknown</span>':badge(r.health)}</td>
  </tr>`;
 }
+function zoneTag(row){
+ const band=zoneBand(row);
+ return band?`<span class="bp-zone-tag bp-zone-${band.toLowerCase()}">Zone ${band}</span>`:'<span class="muted">Outside the bands</span>';
+}
 function chartTheme(){
  const style=getComputedStyle(document.documentElement);
  return Object.fromEntries(['ink','grid','axis','blue','teal'].map(key=>[key,style.getPropertyValue('--chart-'+key).trim()]));
@@ -1065,7 +1219,7 @@ function chartTheme(){
 function drawChart(id,config,theme){
  const {plugins={},scales={},...options}=config.options;
  const {legend={},...otherPlugins}=plugins;
- const axes={x:{},y:{},...scales};
+ const axes=config.type==='doughnut'?{}:{x:{},y:{},...scales};
  const canvas=$(id);
  const panel=canvas.closest('.chart-panel');
  canvas.setAttribute('role','img');
@@ -1091,9 +1245,167 @@ function showChartFallback(panel,items){
  text.textContent=items.join(' · ')||'No warehouse records for this chart';
  box.append(text);
 }
+function renderStudentCharts(){
+ const rows=enriched(),theme=chartTheme();
+ const style=getComputedStyle(document.documentElement);
+ const colors=Object.fromEntries(['A','B','C'].map(key=>[key,style.getPropertyValue('--zone-'+key.toLowerCase()).trim()]));
+ const by=key=>Object.entries(Object.groupBy(rows,key));
+ const bands=by(row=>zoneBand(row)||'Outside the bands').sort(([a],[b])=>a.localeCompare(b));
+ const zoneLabels=bands.map(([key])=>key.length===1?'Zone '+key:key);
+ const zoneColors=bands.map(([key])=>colors[key]||theme.axis);
+ const average=(group,key)=>{
+  const values=group.map(row=>row[key]).filter(Number.isFinite);
+  return values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
+ };
+ const series=(label,data,color)=>({label,data,backgroundColor:color,borderRadius:4});
+ const panel=(id,title,description,{labels=[],datasets=[],type='bar',scales=null,
+  extra={},plugins=[],legend=[],fallback=null,empty='No data for these dates.'}={})=>{
+  const canvas=$(id),parent=canvas.closest('.chart-panel');
+  parent.hidden=false;
+  parent.querySelector('h3').textContent=title;
+  parent.querySelector('p').textContent=description;
+  parent.querySelector('.bp-chart-legend')?.remove();
+  const usable=value=>Array.isArray(value)?value.every(Number.isFinite):Number.isFinite(value);
+  const hasData=labels.length&&datasets.some(data=>data.data.some(usable));
+  if(!hasData||typeof Chart==='undefined'){
+   showChartFallback(parent,fallback||(hasData?labels.map((label,index)=>label+': '+datasets.map(ds=>{
+    const value=ds.data[index];
+    return ds.label+' '+(Array.isArray(value)?value.map(v=>numberText(v)).join('–'):numberText(value));
+   }).join(', ')):[empty]));
+  }else{
+   const tooltip={padding:10,displayColors:type==='doughnut',backgroundColor:style.getPropertyValue('--paper').trim(),
+    titleColor:theme.ink,bodyColor:theme.ink,borderColor:theme.grid,borderWidth:1,callbacks:{
+     label:({dataset,raw,label})=>{
+      if(type==='doughnut')return `${label}: ${raw} restaurants (${(100*raw/rows.length).toFixed(1)}%)`;
+      const text=Array.isArray(raw)?raw.map(n=>numberText(n)).join('–'):numberText(raw,Number.isInteger(raw)?0:1);
+      return `${dataset.label}: ${text}`;
+     }
+    }};
+   drawChart(id,{type,plugins,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
+     animation:false,indexAxis:'y',...extra,
+     plugins:{legend:{display:false},tooltip},scales:scales||{x:{beginAtZero:true}}}},theme);
+  }
+  if(legend.length){
+   const list=document.createElement('ul');
+   list.className='bp-chart-legend';
+   for(const [key,label] of legend){
+    const item=document.createElement('li'),dot=document.createElement('span');
+    dot.className='bp-zone-swatch'+(colors[key]?' bp-zone-'+key.toLowerCase():'');
+    dot.setAttribute('aria-hidden','true');item.append(dot,label);list.append(item);
+   }
+   parent.append(list);
+  }
+ };
+ const eta=bands.map(([,r])=>currentModel?[average(r,'etaLow'),average(r,'etaHigh')]:
+  studentPeriod.snapshot?average(r,'eta'):null);
+ panel('zone-chart','Estimated delivery time by zone',
+  currentModel?'Each bar spans the faster and slower estimates.':'Earlier dates may show one estimate per zone.',
+  {labels:zoneLabels,datasets:[series('Estimated minutes',eta,zoneColors)],empty:'No delivery estimates for these dates.',
+   scales:{x:{beginAtZero:true,title:{display:true,text:'Minutes'}}}});
+ panel('student-stress-chart','Delivery travel difficulty by zone','See which areas need more estimated travel time.',
+  {labels:zoneLabels,datasets:[series('Travel difficulty',bands.map(([,r])=>average(r,'transitStress')),zoneColors)],
+   scales:{x:{min:0,max:100,title:{display:true,text:'Score out of 100'}}},empty:'Travel difficulty is unavailable for these dates.'});
+ const total=rows.length,counts=bands.map(([,r])=>r.length);
+ const legend=bands.map(([key,list],i)=>[key,`${zoneLabels[i]} · ${list.length} (${(list.length*100/total).toFixed(1)}%)`]);
+ const center={id:'blueplate-zone-total',afterDraw(chart){
+  const arc=chart.getDatasetMeta(0).data[0];if(!arc)return;
+  const ctx=chart.ctx;ctx.save();
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=theme.ink;
+  ctx.font='700 24px system-ui';ctx.fillText(String(total),arc.x,arc.y-7);
+  ctx.font='12px system-ui';ctx.fillText('restaurants',arc.x,arc.y+14);ctx.restore();
+ }};
+ panel('student-zone-count-chart','Restaurants by zone','See where the restaurants in this view are located.',
+  {type:'doughnut',labels:zoneLabels,datasets:[{data:counts,backgroundColor:zoneColors,borderWidth:2,
+   borderColor:style.getPropertyValue('--paper').trim()}],plugins:[center],extra:{cutout:'68%'},
+   legend,fallback:total?[`${total} restaurants`]:null});
+ const cuisines=by(row=>row.cuisine||'Unclassified').sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0]));
+ const top=cuisines.slice(0,8).map(([name,list])=>[name,list.length]);
+ if(cuisines.length>8)top.push(['Other cuisines',cuisines.slice(8).reduce((n,[,list])=>n+list.length,0)]);
+ panel('cuisine-chart','Restaurant types and cuisines','Explore the types of food listed near UST.',
+  {labels:top.map(([name])=>name.replaceAll('_',' ').split(';').map(word=>word.trim().replace(/^./,letter=>letter.toUpperCase())).join(' · ')),datasets:[series('Restaurants',top.map(([,n])=>n),theme.teal)],
+   scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{ticks:{autoSkip:false,callback:function(value){
+    return this.getLabelForValue(value).match(/.{1,24}(?:\s|$)|\S{25,}/g)?.map(piece=>piece.trim())||this.getLabelForValue(value);
+   }}}}});
+ renderStudentExperiences();
+ const demand=bands.map(([,group])=>currentModel?group.reduce((n,row)=>n+row.orderCount,0):null);
+ const orderFormat=new Intl.NumberFormat('en-PH');
+ const wholeShares=currentModel?roundDemandShares(demand,currentModel.demand_scenarios.pool[demandScenario]):[];
+ panel('trend-chart','Order demand simulation','Hypothetical daily orders are shared equally across restaurants. These are neither actual orders nor demand forecasts.',
+  {labels:['Assumed daily orders'],datasets:zoneLabels.map((label,i)=>series(label,[demand[i]],zoneColors[i])),
+   scales:{x:{stacked:true,beginAtZero:true,title:{display:true,text:'Hypothetical orders per day'}},y:{stacked:true}},
+   legend:currentModel?bands.map(([band],i)=>[band,`${zoneLabels[i]} · ${orderFormat.format(wholeShares[i])}`]):[],
+   empty:'The order simulation is unavailable for these dates.'});
+}
+// Use the largest remainders, with zone order breaking ties, for display only.
+function roundDemandShares(shares,pool){
+ const whole=shares.map(Math.floor);
+ const remainder=pool-whole.reduce((sum,value)=>sum+value,0);
+ const ranked=shares.map((value,index)=>[index,value-whole[index]])
+  .sort((a,b)=>b[1]-a[1]||a[0]-b[0]);
+ for(const [index] of ranked.slice(0,remainder))whole[index]++;
+ return whole;
+}
+function renderStudentExperiences(){
+ const totals=studentPeriod.report_totals;
+ const ratings=Number(totals.report_rating_count||0);
+ const deliveries=Number(totals.completed_delivery_count||0);
+ const score=liveNumber(totals.auditor_avg_rating);
+ const minutes=liveNumber(totals.observed_delivery_mins);
+ const item=(id,title,value,sample,stars='')=>{
+  $(id).innerHTML=`<h4>${title}</h4><strong>${value}</strong>${stars}<p>${sample}</p>`;
+ };
+ const stars=ratings&&score!==null?`<span class="bp-rating-stars" aria-hidden="true">★★★★★<span style="width:${Math.max(0,Math.min(100,score*20))}%">★★★★★</span></span>`:'';
+ item('student-rating-chart','Student ratings',ratings&&score!==null?numberText(score)+' / 5':'Not enough data',
+  ratings?sampleLabel(ratings,'rating'):'No eligible ratings for these dates.',stars);
+ item('student-delivery-chart','Reported delivery time',deliveries&&minutes!==null?numberText(minutes)+' min':'Not enough data',
+  deliveries?sampleLabel(deliveries,'completed delivery','completed deliveries'):'No completed delivery times for these dates.');
+}
+function zoneBand(row){
+ const distance=liveNumber(row.distance);
+ return row.zone?.match(/^Zone ([ABC]) —/)?.[1]||
+  (distance===null?null:distance<=.5?'A':distance<=1?'B':distance<=1.5?'C':null);
+}
+function renderScenarioCharts(){
+ const grouped=Object.groupBy(state.restaurants,row=>row.zone.charAt(5));
+ const zones=Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).map(([zone,rows])=>{
+  const mean=key=>rows.reduce((total,r)=>total+r[key],0)/rows.length;
+  const sum=key=>rows.reduce((total,r)=>total+r.demand[key],0);
+  return [zone,{eta_low_min:{mean:mean('etaLow')},eta_high_min:{mean:mean('etaHigh')},
+   transit_stress_points:{mean:mean('transitStress')},hypothetical_pool_share:{[demandScenario]:sum(demandScenario)}}];
+ });
+ const cuisines=Object.entries(Object.groupBy(state.restaurants,row=>row.cuisine)).map(([label,rows])=>[label,rows.length]).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+ const top=cuisines.slice(0,8);
+ if(cuisines.length>8)top.push(['Other cuisines',cuisines.slice(8).reduce((n,x)=>n+x[1],0)]);
+ const theme=chartTheme(), labels=zones.map(([zone])=>'Zone '+zone);
+ const series=(label,data,color,yAxisID)=>({label,data,backgroundColor:color,yAxisID,borderRadius:4});
+ const common={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}};
+ const panels=[
+  ['zone-chart','Delivery and transit stress by zone','Mean ETA endpoints and mean Transit Stress Index.',['minutes','points'],labels,[
+   series('Fast ETA (min)',zones.map(([,z])=>z.eta_low_min.mean),theme.blue,'y'),
+   series('Slow ETA (min)',zones.map(([,z])=>z.eta_high_min.mean),theme.teal,'y'),
+   series('Transit stress (points)',zones.map(([,z])=>z.transit_stress_points.mean),theme.ink,'y1')]],
+  ['trend-chart','Hypothetical demand by zone','One scenario snapshot. Zone shares reflect venue counts.',['Hypothetical orders/day'],labels,[
+   series('Hypothetical orders/day',zones.map(([,z])=>z.hypothetical_pool_share[demandScenario]),theme.blue,'y')]],
+  ['cuisine-chart','Restaurant coverage by cuisine','Counts use OSM cuisine tags.',['Venues'],top.map(([label])=>label),[
+   series('Venues',top.map(([,count])=>count),theme.teal,'y')]],
+ ];
+ for(const [id,title,description,units,keys,datasets] of panels){
+  const panel=$(id).closest('.chart-panel');
+  panel.querySelector('h3').textContent=title;panel.querySelector('p').textContent=description;
+  if(typeof Chart==='undefined'){
+   showChartFallback(panel,keys.map((key,i)=>key+': '+datasets.map(set=>set.label+' '+numberText(set.data[i])).join(', ')));
+   continue;
+  }
+  const axes={y:{beginAtZero:true,title:{display:true,text:units[0]}}};
+  if(units.length===2)axes.y1={beginAtZero:true,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:units[1]}};
+  drawChart(id,{type:'bar',data:{labels:keys,datasets},options:{...common,scales:axes}},theme);
+ }
+}
 function renderCharts(){
  if(liveMode && syntheticDemo){ renderSyntheticCharts(); return; }
  charts.forEach(c=>c.destroy());charts=[];
+ if(typeof studentPeriod!=='undefined'&&studentPeriod){renderStudentCharts();return;}
+ if(currentModel){renderScenarioCharts();return;}
  if(liveMode){
   // Keep the existing chart panels; show what MySQL actually provides even
   // when there are no historical ratings or only one dated trend record.
@@ -1233,7 +1545,11 @@ function reportingToday(){
  const day=Object.fromEntries(parts.map(({type,value})=>[type,value]));
  return fromDay(`${day.year}-${day.month}-${day.day}`);
 }
-function dateLimits(){const today=shiftDay(reportingToday(),0);return {oldest:localDay(shiftDay(today,-89)),today:localDay(today)};}
+function dateLimits(){
+ const today=shiftDay(reportingToday(),0), min=localDay(shiftDay(today,-89));
+ const earliest=typeof warehouseFreshness==='undefined'?null:warehouseFreshness?.analytical_dates?.at(-1)?.report_date;
+ return {oldest:earliest&&earliest<min?earliest:min,today:localDay(today)};
+}
 function currentRange(){
  if(periodPreset==='latest')return {from:latestReportingDate,to:latestReportingDate};
  if(periodPreset==='latest-report')return {from:latestReportSubmissionDate,to:latestReportSubmissionDate};
@@ -1278,6 +1594,22 @@ function renderPeriodCaption(){
  const caption=$('bp-period-caption');
  if(!caption)return;
  const freshness=$('bp-view-freshness');
+ if(typeof studentMode!=='undefined'&&studentMode){
+  freshness.hidden=false;
+  renderFreshnessValues();
+  if(customPeriodDraft){caption.textContent='Choose a start and end date, then select Apply dates.';return;}
+  const range=studentPeriod?.period;
+  const label=range?(range.from===range.to?prettyManila(range.from):prettyManila(range.from)+' – '+prettyManila(range.to)):'Latest available · all student reports to date';
+  const date=studentPeriod?.snapshot?.report_date;
+  caption.textContent='Selected reporting period: '+label+(date?' · Estimates from '+prettyManila(date):studentPeriod?' · No estimates for these dates.':'');
+  return;
+ }
+ if(currentModel&&(periodPreset==='current'||selectedScenarioDate())){
+  freshness.hidden=false;
+  renderFreshnessValues();
+  caption.textContent=`${currentModel.version} · ${currentModel.snapshot_date_manila} (Manila)`;
+  return;
+ }
  freshness.hidden=!liveMode||syntheticDemo;
  if(syntheticDemo){
   caption.textContent=customPeriodDraft?'Choose both dates, then click Apply dates.':`${dateRangeLabel()} · SYNTHETIC DEMONSTRATION · real OSM venues, fabricated performance data.`;
@@ -1289,16 +1621,48 @@ function renderPeriodCaption(){
  const selected=customPeriodDraft?'Choose both dates, then select Apply dates.':`${context} · ${range}`;
  const empty=!customPeriodDraft&&liveHasObservations===false?'\nNo warehouse estimates or student reports for this period.':'';
  caption.textContent=`${selected}${empty}`;
- $('bp-warehouse-date').textContent=latestReportingDate||'Not available';
- $('bp-latest-guest-date').textContent=latestGuestReportDate||(latestGuestReportDate===null?'No guest reports yet':'Not available');
+ renderFreshnessValues();
+}
+function prettyManila(value){
+ if(!value)return 'Not available';
+ const dated=value.length===10;
+ const date=new Date(dated?value+'T00:00:00+08:00':value+'+08:00');
+ if(!Number.isFinite(date.valueOf()))return 'Not available';
+ return new Intl.DateTimeFormat('en-PH',{dateStyle:'medium',...(dated?{}:{timeStyle:'short'}),timeZone:'Asia/Manila'}).format(date);
+}
+function renderFreshnessValues(){
+ const display=value=>value?value.replace('T',' '):'Not available';
+ if(typeof studentMode!=='undefined'&&studentMode){
+  $('bp-warehouse-date').textContent=prettyManila(warehouseFreshness?.warehouse_as_of);
+  $('bp-latest-guest-date').textContent=warehouseFreshness?.latest_genuine_report?prettyManila(warehouseFreshness.latest_genuine_report)+' Manila':'No student reports yet';
+  $('bp-directory-date').textContent=prettyManila(warehouseFreshness?.directory_updated_at);
+  $('bp-dashboard-loaded-at').textContent=dashboardLoadedAt?.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Manila'})||'Not available';
+  const dates=dateLimits();
+  $('bp-custom-from').min=$('bp-custom-to').min=dates.oldest;
+  return;
+ }
+
+ $('bp-warehouse-date').textContent=warehouseFreshness?.warehouse_as_of||latestReportingDate||'Not available';
+ $('bp-latest-guest-date').textContent=warehouseFreshness
+  ?(warehouseFreshness.latest_genuine_report?display(warehouseFreshness.latest_genuine_report):'No guest reports yet')
+  :(latestGuestReportDate||(latestGuestReportDate===null?'No guest reports yet':'Not available'));
+ $('bp-directory-date').textContent=display(warehouseFreshness?.directory_updated_at);
  $('bp-dashboard-loaded-at').textContent=dashboardLoadedAt?.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})||'Not available';
+}
+
+function selectedScenarioDate(){
+ if(periodPreset!=='custom'||customFrom!==customTo||customPeriodDraft)return null;
+ return warehouseFreshness?.analytical_dates?.some(row=>row.metric_family==='DELIVERY_SCENARIO'&&row.report_date===customFrom)?customFrom:null;
 }
 function refreshSelectedPeriod(){
  customPeriodDraft=false;
  liveHasObservations=null;
  syncPeriodButtons();
  renderPeriodCaption();
- return window.BluePlateBridge?.refreshAdmin(currentRange()).catch(()=>{});
+ if(typeof studentMode!=='undefined'&&studentMode)return window.BluePlateBridge?.refreshAdmin(currentRange()).catch(()=>{});
+ return (periodPreset==='current'||(currentModel&&!latestReportingDate)
+  ?window.BluePlateBridge?.refreshDashboard()
+  :window.BluePlateBridge?.refreshAdmin(currentRange()))?.catch(()=>{});
 }
 function updatePeriod(){
  if(liveMode){
@@ -1312,13 +1676,16 @@ function updatePeriod(){
 }
 function initPeriodToolbar(){
  const host=document.createElement('div');host.className='bp-period-toolbar';
- host.innerHTML=`<div class="bp-period-top"><h2 class="bp-feature-title">Reporting period</h2><div class="bp-period-tabs" role="group" aria-label="Reporting period"><button type="button" id="bp-latest-period" class="hidden" data-period="latest">Latest modeled snapshot</button><button type="button" id="bp-latest-report-period" class="hidden" data-period="latest-report">Latest report date</button><button type="button" data-period="7d">7 days</button><button type="button" data-period="30d">30 days</button><button type="button" data-period="90d">90 days</button><button type="button" data-period="custom">Custom</button></div><p id="bp-period-caption" class="bp-feature-description" role="status" aria-atomic="true"></p>
+ host.innerHTML=`<div class="bp-period-top"><h2 class="bp-feature-title">Reporting period</h2><div class="bp-period-tabs" role="group" aria-label="Reporting period"><button type="button" id="bp-available-period" class="hidden" data-period="available">Latest available</button><button type="button" id="bp-current-period" class="hidden" data-period="current">Current snapshot</button><button type="button" id="bp-latest-period" class="hidden" data-period="latest">Earlier warehouse snapshot</button><button type="button" id="bp-latest-report-period" class="hidden" data-period="latest-report">Latest report date</button><button type="button" data-period="7d">7 days</button><button type="button" data-period="30d">30 days</button><button type="button" data-period="90d">90 days</button><button type="button" data-period="custom">Custom</button></div><p id="bp-period-caption" class="bp-feature-description" role="status" aria-atomic="true"></p>
  <dl id="bp-view-freshness" class="bp-view-freshness" hidden>
-  <div><dt>Latest warehouse data</dt><dd id="bp-warehouse-date"></dd></div>
-  <div><dt>Latest guest report (Manila)</dt><dd id="bp-latest-guest-date"></dd></div>
-  <div><dt>View loaded (browser time)</dt><dd id="bp-dashboard-loaded-at"></dd></div>
+  <div><dt>Data last updated</dt><dd id="bp-warehouse-date"></dd></div>
+  <div><dt>Latest student report</dt><dd id="bp-latest-guest-date"></dd></div>
  </dl>
- <p class="bp-feature-description">Warehouse demand, delivery time, menu price, and risk are estimates. Student feedback describes voluntarily reported deliveries.</p></div><div id="bp-custom-dates" class="bp-custom-dates hidden"><label>From<input id="bp-custom-from" type="date" class="field" aria-label="Start date"></label><label>To<input id="bp-custom-to" type="date" class="field" aria-label="End date"></label><button type="button" id="bp-custom-apply" class="btn secondary">Apply dates</button></div>`;
+ <details class="bp-freshness-details"><summary>About these dates</summary>
+  <p>The latest view uses the newest estimates and all student reports to date. A date range uses the newest set of estimates within those dates and reports submitted during the same range.</p>
+  <dl><div><dt>Directory updated (Manila)</dt><dd id="bp-directory-date"></dd></div><div><dt>Page refreshed (Manila)</dt><dd id="bp-dashboard-loaded-at"></dd></div></dl>
+ </details>
+ <p class="bp-feature-description">Current and historical models use different methods. Student feedback describes voluntarily reported deliveries.</p></div><div id="bp-custom-dates" class="bp-custom-dates hidden"><label>From<input id="bp-custom-from" type="date" class="field" aria-label="Start date"></label><label>To<input id="bp-custom-to" type="date" class="field" aria-label="End date"></label><button type="button" id="bp-custom-apply" class="btn secondary">Apply dates</button></div>`;
  $('overview').querySelector('.page-heading').insertAdjacentElement('afterend',host);
  const limits=dateLimits(),from=$('bp-custom-from'),to=$('bp-custom-to');
  for(const input of [from,to]){input.min=limits.oldest;input.max=limits.today;}
@@ -1335,10 +1702,12 @@ function initPeriodToolbar(){
    return;
   }
   periodPreset=selected;
+  if(liveMode&&selected==='latest'&&!latestReportingDate){manualPeriodSelected=false;window.BluePlateBridge?.refreshDashboard(true).catch(()=>{});return;}
   updatePeriod();
  });
  $('bp-custom-apply').onclick=()=>{
   const start=from.value,end=to.value;
+  const limits=dateLimits();
   if(!start||!end||start>end||start<limits.oldest||end>limits.today){toast(`Choose valid dates between ${limits.oldest} and ${limits.today}.`);return;}
   manualPeriodSelected=true;customFrom=start;customTo=end;periodPreset='custom';updatePeriod();
  };
@@ -1367,6 +1736,43 @@ function smallSparkline(data){
  return `<svg class="bp-trend-sparkline" role="img" aria-label="Modeled daily delivery time trend, ${data.length} observations" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 function renderRestaurantDetail(id){
+ if(studentPeriod){
+  const row=enriched().find(r=>r.id===id);if(!row)return;
+  const source=publicVenueLabel(row)||'Historical restaurant listing';
+  const classification=row.cuisineClassification;
+  const eta=currentModel?`${numberText(row.etaLow)}–${numberText(row.etaHigh)} min`:Number.isFinite(row.eta)?numberText(row.eta)+' min':'Not available';
+  const estimates=[['Estimated delivery',eta,currentModel?'Estimated range':'Estimate for the selected dates']];
+  if(currentModel)estimates.push(['Travel difficulty',numberText(row.transitStress)+' / 100','Share of the assumed travel-time budget'],
+   ['Simulated orders per day',numberText(row.orderCount,2),'Equal share of the selected scenario']);
+  const reports=reportMetrics(row.genuineTotals||{}).map(([label,value,sub])=>[label.replace('Accepted reports','Student reports').replace('Self-reported','Student-reported'),value,sub]);
+  const markup=items=>items.map(([label,value,sub])=>`<div><span>${html(label)}</span><strong>${html(value)}</strong><small>${html(sub)}</small></div>`).join('');
+  $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><h2 id="bp-dialog-title">${html(row.name)}</h2><p>${html(row.streetAddress||'Address unavailable')} · ${zoneTag(row)} · ${html(row.zone)}</p>
+  <p>Cuisine or specialty: ${html(row.cuisine||'Not specified')}</p>
+  ${classification?`<p>Establishment type: ${html(classification.establishment_type)}</p>
+  ${classification.cuisines.length>1?`<p>Cuisines: ${html(classification.cuisines.join(', '))}</p>`:''}
+  ${classification.specialties.length&&classification.specialties.join(', ')!==row.cuisine?`<p>Food specialties: ${html(classification.specialties.join(', '))}</p>`:''}
+  ${classification.source!=='Not specified'?`<p>Classification source: ${html(classification.source)}</p>`:''}`:''}
+  <p>Information source: ${html(source)}</p><p>Opening status: ${html(row.verificationProvenance==='USER_CONFIRMED'||row.verificationProvenance==='INDEPENDENTLY_VERIFIED'?'Confirmed open':'Not confirmed in this view')}</p>
+  </div><button type="button" class="bp-detail-close" data-close-detail aria-label="Close restaurant details">×</button></div>
+  <h3>Delivery estimates</h3><div class="bp-detail-metrics">${markup(estimates)}</div><h3>Student feedback</h3><div class="bp-detail-metrics">${markup(reports)}</div>
+  <p class="bp-feature-description">Student reports describe individual experiences.</p>`;
+  $('bp-detail-dialog').setAttribute('aria-labelledby','bp-dialog-title');
+  return;
+ }
+ if(currentModel){
+  const row=enriched().find(r=>r.id===id);if(!row)return;
+  const reports=reportMetrics(row.genuineTotals);
+  const items=[
+   ['Modeled ETA range',`${numberText(row.etaLow)}–${numberText(row.etaHigh)} min`,'Scenario endpoints'],
+   ['Transit Stress Index',numberText(row.transitStress)+' points','Modeled travel time only'],
+   ['Hypothetical orders per day',numberText(row.orderCount,2),'Equal scenario allocation'],
+   ...reports,
+  ];
+  $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><h2 id="bp-dialog-title">${html(row.name)}</h2><p>${html(row.streetAddress||'Address unavailable')} · ${html(row.zone)} · ${html(publicVenueLabel(row))}</p></div><button type="button" class="bp-detail-close" data-close-detail aria-label="Close restaurant details">×</button></div>
+   <div class="bp-detail-metrics">${items.map(([label,value,sub])=>`<div><span>${html(label)}</span><strong>${html(value)}</strong><small>${html(sub)}</small></div>`).join('')}</div><p class="bp-feature-description">${html(reportMethodology)}</p>`;
+  $('bp-detail-dialog').setAttribute('aria-labelledby','bp-dialog-title');
+  return;
+ }
  if(liveMode && syntheticDemo){
   const r=enriched().find(x=>x.id===id);if(!r)return;
   $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><div class="section-tag">SYNTHETIC DEMO · REAL OSM RESTAURANT IDENTITY</div><h2 id="bp-dialog-title">${html(r.name)}</h2><p>${html(r.branch)} · ${html(r.zone)}</p></div><button class="bp-detail-close" data-close-detail aria-label="Close details">×</button></div><div class="bp-detail-metrics"><div><span>Synthetic ETA</span><strong>${r.eta.toFixed(1)} min</strong></div><div><span>Synthetic risk</span><strong>${r.cancellationProxyPct.toFixed(1)}%</strong></div><div><span>Synthetic rating</span><strong>${r.blendedRating.toFixed(2)}/5</strong></div><div><span>Synthetic health</span>${badge(r.health)}</div></div><p class="bp-feature-description">Illustrative outputs only. No observed order, actual rating, or verified restaurant performance is implied.</p>`;
@@ -1472,7 +1878,7 @@ function showSubmissionConfirmation(report,restaurant,stored){
    <dl><div><dt>Restaurant</dt><dd>${html(restaurant.name)}</dd></div><div><dt>Outcome</dt><dd class="${report.cancelled?'bp-result-cancelled':'bp-result-delivered'}">${report.cancelled?'Cancelled':'Delivered'}</dd></div><div><dt>Delivery time</dt><dd>${report.cancelled?'Not applicable':Number(report.minutes)+' min'}</dd></div><div><dt>Rating</dt><dd>${Number(report.rating)}/5 ★</dd></div><div><dt>Browser time</dt><dd>${html(formatDateTime(report.createdAt))}</dd></div></dl>`;
  card.innerHTML=`<div class="bp-success-icon" aria-hidden="true">✓</div><h3 tabindex="-1" id="bp-success-heading">${title}</h3>${details}
   <button type="button" class="submit-btn" id="bp-submit-another">Submit another report</button>
-  <a class="bp-receipt-link" href="#recent">View Recent campus reports</a>`;
+  <a class="bp-receipt-link" href="#recent">View recent student reports</a>`;
  $('audit-form').classList.add('hidden');card.classList.remove('hidden');
  $('bp-submit-another').onclick=()=>{card.classList.add('hidden');$('audit-form').classList.remove('hidden');$('audit-restaurant')._bpFocus?.();$('report-form-section').scrollIntoView({behavior:'smooth',block:'start'});};
  $('bp-success-heading').focus({preventScroll:true});$('report-form-section').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1488,18 +1894,18 @@ function liveNotice(){
 }
 window.BluePlateApp={
  activateLive({guestEnabled=false,demoEnabled=false}={}){
-  liveMode=true;syntheticDemo=!!demoEnabled;liveGuestEnabled=!!guestEnabled && !syntheticDemo;liveError=liveRequired?'Connecting to the live warehouse…':'';
+  liveMode=true;syntheticDemo=!!demoEnabled;liveGuestEnabled=!!guestEnabled && !syntheticDemo;liveError=liveRequired?'Connecting…':'';
   state.restaurants=[];state.alerts=[];liveReports=[];liveTrend=[];liveReportTotals={};modeledHistory.clear();
-  document.querySelectorAll('.header-chip').forEach(el=>el.textContent=liveRequired?(page==='admin'?'Read-only BI dashboard':'Delivery reports'):(page==='admin'?'MySQL · Local':'MySQL · Local portal'));
+  document.querySelectorAll('.header-chip').forEach(el=>el.textContent=liveRequired?(page==='admin'?'Delivery dashboard':'Delivery reports'):(page==='admin'?'Delivery dashboard':'Delivery reports'));
   const notice=liveNotice();
-  notice.textContent=liveRequired?'Loading warehouse records…':'Local MySQL integration · Loading warehouse records.';
+  notice.textContent=liveRequired?'Loading dashboard data…':'Loading delivery information…';
   if(page==='public'){
    const subtitle=document.querySelector('.public-form .subtitle');
    if(subtitle)subtitle.textContent=syntheticDemo?'Practice reports stay in this browser. Leave out personal information.':'Choose a restaurant and describe one order.';
    $('bp-report-privacy').hidden=syntheticDemo;
    if(location.hash==='#report-form-section')requestAnimationFrame(openReportPrivacy);
    if(!syntheticDemo)$('bp-public-footer-note').textContent='Campus delivery reports and restaurant analytics.';
-   const tag=document.querySelector('#recent .section-tag');if(tag)tag.textContent=syntheticDemo?'SYNTHETIC DEMO REPORTS · BROWSER-LOCAL PRACTICE':'Community reports';
+   const tag=document.querySelector('#recent .section-tag');if(tag)tag.textContent=syntheticDemo?'SYNTHETIC DEMO REPORTS · BROWSER-LOCAL PRACTICE':'Student feedback';
    const help=document.querySelector('#recent .small.muted');if(help)help.textContent=syntheticDemo?'Sample reports are fabricated; your practice submissions stay in this browser. No real orders are represented.':'Recent self-reported submissions.';
    const tip=$('audit-form')?.querySelector('.demo-tip');
    if(tip){tip.hidden=liveGuestEnabled;tip.textContent=syntheticDemo?'Practice reports are stored in this browser.':'Guest submissions are disabled.';}
@@ -1512,11 +1918,12 @@ window.BluePlateApp={
     from.value=customFrom=localDay(shiftDay(reportingToday(),-29));
     to.value=customTo=today;
    }
-   const button=$('simulate-refresh');if(button){button.textContent='Reload dashboard data';button.onclick=()=>{liveHasObservations=null;renderPeriodCaption();return window.BluePlateBridge.refreshDashboard().catch(()=>{});};}
+   const button=$('simulate-refresh');if(button){button.textContent='Refresh';button.onclick=()=>{liveHasObservations=null;renderPeriodCaption();return window.BluePlateBridge.refreshDashboard().catch(()=>{});};}
   }
   if(syntheticDemo){notice.style.background='#172c46';notice.style.color='#f5f8ff';notice.style.border='1px solid #486a91';}
   if(page==='admin')renderAdmin();else {renderPublicReviews();}
  },
+ setWarehouseFreshness(value){warehouseFreshness=value;renderPeriodCaption();if(studentPeriod)renderStudentNotices();},
  setGuestReportDate(date){
   latestGuestReportDate=date;
   renderPeriodCaption();
@@ -1538,15 +1945,76 @@ window.BluePlateApp={
  },
  setPublic(restaurants){
   state.restaurants=restaurants;
-  const select=$('audit-restaurant');select.innerHTML='<option value="" disabled selected>Choose a restaurant</option>'+restaurants.map(r=>`<option value="${r.id}">${html(r.name)} · ${html(r.branch)}</option>`).join('');
-  select._bpClear?.();const input=$('restaurant-search');if(input)input.placeholder=`Search ${restaurants.length} database restaurants…`;
-  const box=$('bp-live-notice');if(box)box.textContent=syntheticDemo?`SYNTHETIC DEMO MODE · ${restaurants.length} real OSM restaurant identities from local MySQL; all sample reports fabricated and browser-only. No real performance observations. © OpenStreetMap contributors (ODbL).`:`Restaurant directory · ${restaurants.length} restaurants. Venues: © OpenStreetMap contributors (ODbL). ${liveGuestEnabled?'Guest reports enabled.':'Submissions currently disabled.'}`;
+  const select=$('audit-restaurant');select.innerHTML='<option value="" disabled selected>Choose a restaurant</option>'+restaurants.filter(r=>r.guestReportingEligible!==false).map(r=>`<option value="${r.id}">${html(r.name)} · ${html(r.branch)}</option>`).join('');
+  select._bpClear?.();const input=$('restaurant-search');if(input)input.placeholder=`Search eligible restaurants…`;
+  const box=$('bp-live-notice');if(box)box.textContent=syntheticDemo?`SYNTHETIC DEMO MODE · ${restaurants.length} real OSM restaurant identities from local MySQL; all sample reports fabricated and browser-only. No real performance observations. © OpenStreetMap contributors (ODbL).`:`Restaurant selection · Venues: © OpenStreetMap contributors (ODbL). ${liveGuestEnabled?'Guest reports enabled.':'Submissions currently disabled.'}`;
  },
  setPublicReviews(reports){
   if(syntheticDemo){const local=safeRead(REPORT_KEY).filter(r=>state.restaurants.some(x=>x.id===Number(r.restaurantId))).map(r=>{const x=state.restaurants.find(v=>v.id===Number(r.restaurantId));return {restaurant_name:x.name,zone_name:x.zone,rating_score:Number(r.rating),order_was_cancelled:!!r.cancelled,actual_observed_delivery_mins:r.minutes,comment_text:String(r.notes||''),submission_source:'BROWSER DEMO ONLY',submitted_at:r.createdAt};});liveReports=[...local,...reports];}
   else liveReports=reports;renderPublicReviews();},
- setAdmin({restaurants,alerts,trend,demo=false,hasObservations=null,reportTotals={}}){
+ configureCurrentModel(available, params, student=false){
+  studentMode=student;
+  if(student){
+   document.body.classList.add('bp-student-dashboard');
+   for(const id of ['bp-current-period','bp-latest-period','bp-latest-report-period'])$(id).remove();
+   $('bp-available-period').classList.remove('hidden');
+   periodPreset='available';manualPeriodSelected=true;
+  }
+  currentModelAvailable=available;
+  $('bp-current-period')?.classList.toggle('hidden',!available);
+  const from=params.get('from'),to=params.get('to');
+  const historical=params.get('model')==='legacy'||from||to;
+  if(!student&&available&&!historical){periodPreset='current';manualPeriodSelected=true;}
+  const limits=dateLimits();
+  if(from&&to&&/^\d{4}-\d\d-\d\d$/.test(from)&&/^\d{4}-\d\d-\d\d$/.test(to)&&from>=limits.oldest&&to<=limits.today&&from<=to){
+   customFrom=from;customTo=to;periodPreset='custom';manualPeriodSelected=true;
+   $('bp-custom-from').value=from;$('bp-custom-to').value=to;$('bp-custom-dates').classList.remove('hidden');
+  }
+  syncPeriodButtons();
+ },
+ isLatestAvailable:()=>periodPreset==='available',
+ wantsCurrentModel(){return currentModelAvailable&&(periodPreset==='current'||Boolean(selectedScenarioDate()));},
+ scenarioDate:()=>selectedScenarioDate(),
+ setAdmin({restaurants,alerts,trend,demo=false,hasObservations=null,reportTotals={},directoryCoverage=null,model=null,student=null}){
   syntheticDemo=!!demo;
+  studentPeriod=student;
+  const previousModel=Boolean(currentModel);
+  currentModel=model?{...model,liveCoverage:directoryCoverage}:null;
+  if(student)$('bp-export-directory').disabled=!student.snapshot;
+  $('bp-model-controls').hidden=!model;
+  $('bp-notices-info').hidden=!student;
+  $('bp-student-experiences').hidden=!student;
+  $('bp-alert-filter-tools').hidden=Boolean(student);
+  if(student)document.querySelector('.sidebar-caption').textContent='Delivery estimates and feedback from UST students.';
+  $('bp-street-filter').hidden=!model;
+  if(model)$('bp-latest-period')?.classList.remove('hidden');
+  const health=$('filter-health');
+  const healthControls=[document.querySelector('label[for="filter-health"]'),health,health.nextElementSibling];
+  for(const control of healthControls.slice(0,2).filter(Boolean))control.hidden=Boolean(model||student);
+  if(healthControls[2]?.classList.contains('bp-compact-select'))healthControls[2].hidden=Boolean(model||student);
+  if(model||student)health.value='ALL';
+  if(previousModel!==Boolean(model))$('sort-popover').dispatchEvent(new Event('bp-reset-sort'));
+  const headings=student?['Restaurant','Zone and address','Distance','Estimated delivery','Travel difficulty','Simulated orders/day','Student rating','Student reports']:model?['Restaurant','Distance band & address','Distance','Scenario ETA','Transit stress','Hypothetical demand/day','Guest rating','Guest reports']
+   :['Restaurant','Zone & gate','Distance','Modeled menu price','Delivery ETA','Risk index','Rating','Health'];
+  document.querySelectorAll('#restaurants thead th').forEach((th,i)=>{th.textContent=headings[i];});
+  for(const button of $('sort-popover').querySelectorAll('[data-sort-key]')){
+   button.hidden=(Boolean(model||student)&&['price','health'].includes(button.dataset.sortKey))||(Boolean(student&&!model)&&button.dataset.sortKey==='risk');
+   if(button.dataset.sortKey==='risk')button.querySelector('.sort-choice-name').textContent=student?'Travel difficulty':model?'Transit stress':'Risk';
+  }
+  const updateOptions=(id,values,all)=>{
+   const control=$(id),old=control.value;
+   control.replaceChildren(new Option(all,'ALL'),...values.map(v=>new Option(v,v)));
+   control.value=values.includes(old)?old:'ALL';
+   const wrapper=control.nextElementSibling;
+   if(wrapper?.classList.contains('bp-compact-select')){wrapper.remove();control.classList.remove('bp-native-select');}
+  };
+  updateOptions('filter-zone',[...new Set(restaurants.map(r=>r.zone))].sort(),'All zones');
+  updateOptions('filter-street',model?Object.keys(model.address_clusters).sort():[],'All areas');
+  const coverage=$('bp-directory-cohorts');
+  if(coverage){
+   coverage.hidden=!directoryCoverage||Boolean(model||student);
+   if(directoryCoverage&&!model)coverage.textContent=`Public directory: ${directoryCoverage.public_listings} · Modeled venues in period: ${directoryCoverage.modeled_venues} · Venues with guest self-reports in period: ${directoryCoverage.guest_self_reported_venues}`;
+  }
   state.restaurants=restaurants;state.alerts=alerts;liveTrend=trend;liveHasObservations=hasObservations;liveReportTotals=reportTotals;
   dashboardLoadedAt=new Date();
   liveError='';
@@ -1554,15 +2022,15 @@ window.BluePlateApp={
   cuisine.innerHTML='<option value="ALL">All cuisines</option>'+[...new Set(restaurants.map(r=>r.cuisine))].sort().map(c=>`<option value="${html(c)}">${html(c)}</option>`).join('');
   cuisine.value=[...cuisine.options].some(o=>o.value===previous)?previous:'ALL';
   // Compact menu was created from the previous sample options: rebuild it.
-  const wrapper=cuisine.nextElementSibling;if(wrapper?.classList.contains('bp-compact-select')){wrapper.remove();cuisine.classList.remove('bp-native-select');initCompactSelects();}
+  const wrapper=cuisine.nextElementSibling;if(wrapper?.classList.contains('bp-compact-select')){wrapper.remove();cuisine.classList.remove('bp-native-select');}initCompactSelects();
   renderAdmin();renderPeriodCaption();
-  const box=$('bp-live-notice');if(box)box.textContent=syntheticDemo?`SYNTHETIC DEMO MODE · ${restaurants.length} real OSM restaurant identities · ${trend.length} fabricated days · ${alerts.length} simulated alerts. No real ratings, deliveries, risk events or recorded operational actions. © OpenStreetMap contributors (ODbL).`:'Live MySQL data. Restaurant listings © OpenStreetMap contributors (ODbL).';
-  const footer=document.querySelector('.footer');if(footer)footer.textContent=syntheticDemo?'BluePlate · SYNTHETIC DEMONSTRATION · OSM venue directory, no real performance data.':'BluePlate · MySQL data · Modeled metrics are estimates; not a verified delivery feed.';
+  const box=$('bp-live-notice');if(box)box.hidden=Boolean(student);if(box)box.textContent=syntheticDemo?`SYNTHETIC DEMO MODE · ${restaurants.length} real OSM restaurant identities · ${trend.length} fabricated days · ${alerts.length} simulated alerts. No real ratings, deliveries, risk events or recorded operational actions. © OpenStreetMap contributors (ODbL).`:'Restaurant listings © OpenStreetMap contributors (ODbL).';
+  const footer=document.querySelector('.footer');if(footer)footer.textContent=syntheticDemo?'BluePlate · SYNTHETIC DEMONSTRATION · OSM venue directory, no real performance data.':'BluePlate · UST Manila · Restaurant listings © OpenStreetMap contributors (ODbL).';
  },
  notice(message){const el=$('bp-live-notice');if(el){el.textContent=String(message);el.classList.remove('bp-live-error');}else toast(String(message));},
  showError(message){
-  liveError=liveRequired?'Live warehouse data is temporarily unavailable.':String(message);
-  state.restaurants=[];state.alerts=[];liveTrend=[];liveReports=[];liveReportTotals={};
+  liveError=liveRequired?'Dashboard data is temporarily unavailable. Please try again.':String(message);
+  studentPeriod=null;state.restaurants=[];state.alerts=[];liveTrend=[];liveReports=[];liveReportTotals={};
   if(page==='admin'){
    liveHasObservations=null;
    dashboardLoadedAt=null;
@@ -1577,6 +2045,7 @@ window.BluePlateApp={
    $('recent-reviews').replaceChildren();
   }
   const notice=liveNotice();
+  notice.hidden=false;
   notice.textContent=liveRequired?liveError:`Warehouse data unavailable: ${liveError}. Demo figures are intentionally hidden.`;
   notice.classList.add('bp-live-error');
  },

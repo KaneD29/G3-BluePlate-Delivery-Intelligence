@@ -40,7 +40,7 @@ def permitted_path(name):
             and all(part not in {"", ".", ".."} for part in path.parts)
             and not any(part.lower() in BLOCKED_DIRS or part.lower().startswith(".venv")
                         for part in path.parts)
-            and (name in {".env.example", ".gitignore"} or not any(part.startswith(".") for part in path.parts))
+            and (name in {".env.example", ".gitignore", ".gitattributes"} or not any(part.startswith(".") for part in path.parts))
             and path.suffix.lower() not in BLOCKED_SUFFIXES)
 
 

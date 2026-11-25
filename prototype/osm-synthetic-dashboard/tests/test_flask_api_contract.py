@@ -636,7 +636,7 @@ def test_presentation_links_in_flask_modes(client, monkeypatch, mode, path):
     assert response.status_code == 200
     assert response.data.count(b'href="/"') == 2  # Logo and report navigation.
     assert response.data.count(b'href="/dashboard/"') == 1
-    assert response.data.count(b'BI Dashboard</a>') == 1
+    assert response.data.count(b'Dashboard</a>') == 1
     if path == "/":
         assert b'href="/dashboard/#data-methodology"' in response.data
         assert b'min="1" max="240" step="1"' in response.data

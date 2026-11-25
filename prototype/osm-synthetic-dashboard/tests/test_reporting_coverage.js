@@ -26,6 +26,7 @@ function start({demo = false, staticSite = false, failCoverage = false, failGues
     'bp-warehouse-date': {},
     'bp-latest-guest-date': {},
     'bp-dashboard-loaded-at': {},
+    'bp-directory-date': {},
     'simulate-refresh': {},
     'bp-latest-period': buttons[0],
     'bp-latest-report-period': buttons[1],

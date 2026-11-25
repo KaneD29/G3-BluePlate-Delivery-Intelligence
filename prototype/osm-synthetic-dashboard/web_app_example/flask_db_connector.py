@@ -5,7 +5,11 @@ or replace the team's separately deployed Next.js/data-service architecture.
 Manager writes use an explicit development-only bearer token; implement real
 per-user authentication and centralized rate limits before any public release.
 """
+from collections import Counter
+import csv
 import hmac
+import io
+import json
 import math
 import os
 import re
@@ -21,7 +25,7 @@ from uuid import UUID
 
 import mysql.connector
 from requests import RequestException
-from flask import Flask, Response, jsonify, request, send_from_directory, session
+from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session
 from itsdangerous import BadData, URLSafeTimedSerializer
 from mysql.connector.errorcode import ER_DUP_ENTRY
 
@@ -218,6 +222,82 @@ def report_totals(db, period):
     return totals
 
 
+def expanded_directory():
+    return os.getenv("BLUEPLATE_EXPANDED_DIRECTORY", "").lower() == "true"
+
+
+def pilot_visible():
+    return os.getenv("BLUEPLATE_SHOW_DIRECTORY_ADDITIONS", "").lower() == "true"
+
+
+# Only constants are interpolated into SQL; request data remains bound.
+DIRECTORY_STATUS = """r.publication_status='APPROVED' AND r.withdrawn_at IS NULL
+    AND r.identity_hold=FALSE AND (
+        (r.bi_scope='LEGACY' AND r.operational_status='OPERATIONAL') OR
+        (r.bi_scope='DIRECTORY_ONLY' AND (
+          (r.directory_provenance IN ('USER_CONFIRMED','INDEPENDENTLY_VERIFIED')
+            AND r.operational_status='OPERATIONAL') OR
+          (r.directory_provenance='OSM_LISTED' AND r.operational_status='UNKNOWN')
+        ))
+    )"""
+
+
+def revised_directory():
+    return (expanded_directory()
+            and os.getenv("BLUEPLATE_REVISED_DIRECTORY", "").lower() == "true")
+
+
+def directory_relation():
+    return "revised_directory" if revised_directory() else "dim_restaurant"
+
+
+def directory_predicate():
+    if revised_directory():
+        return ("r.public_visible=TRUE AND r.withdrawn_at IS NULL"
+                + ("" if pilot_visible() else " AND r.bi_scope='LEGACY'"))
+    if not expanded_directory():
+        return "r.operational_status = 'OPERATIONAL'"
+    return DIRECTORY_STATUS + ("" if pilot_visible() else " AND r.bi_scope='LEGACY'")
+
+
+DIRECTORY_FIELDS = """r.operational_status, r.directory_provenance AS verification_provenance,
+    r.confirmed_on, r.osm_opening_hours, r.guest_reporting_enabled AS guest_reporting_eligible"""
+
+
+def versioned_bi_enabled():
+    return os.getenv("BLUEPLATE_VERSIONED_BI", "").lower() == "true"
+
+
+def reviewed_cuisine_sql():
+    """Return the current-directory display dimension without altering legacy cuisine keys."""
+    if revised_directory():
+        name = "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(cr.review_evidence,'$.cuisine_classification.label')),NULLIF(c.cuisine_name,'Unclassified / Pending Review'))"
+        join = "LEFT JOIN revised_directory_review cr ON cr.restaurant_key=r.restaurant_key"
+        extra = ", JSON_EXTRACT(cr.review_evidence,'$.cuisine_classification') AS cuisine_classification"
+        return name, join, extra
+    return ("NULLIF(c.cuisine_name,'Unclassified / Pending Review')" if expanded_directory() else "c.cuisine_name"), "", ""
+
+
+def parse_cuisine_annotation(rows):
+    for row in rows:
+        if row.get("cuisine_classification") is not None:
+            row["cuisine_classification"] = json.loads(row["cuisine_classification"])
+
+
+def current_cuisine_annotations(db):
+    return {row["external_place_id"]:json.loads(row["classification"]) for row in fetch_all(db, """
+        SELECT d.external_place_id, JSON_EXTRACT(r.review_evidence,'$.cuisine_classification') AS classification
+        FROM revised_directory_review r JOIN dim_restaurant d USING(restaurant_key)
+        WHERE r.public_visible AND JSON_CONTAINS_PATH(r.review_evidence,'one','$.cuisine_classification')
+    """)}
+
+
+def legacy_signal_source():
+    if versioned_bi_enabled():
+        return "(SELECT * FROM vw_bi_modeled_restaurant_day WHERE model_version='legacy-osm-daily-v1') v"
+    return "vw_v8_restaurant_daily_signals v"
+
+
 def period_restaurants(db, period):
     params = (
         period["start_key"], period["end_key"],
@@ -244,7 +324,7 @@ def period_restaurants(db, period):
                    ROUND(AVG(proxy_delivery_mins), 2) AS proxy_delivery_mins,
                    ROUND(AVG(cancellation_risk_index), 2) AS cancellation_risk_index,
                    ROUND(AVG(NULLIF(avg_menu_price_php, 0)), 2) AS avg_menu_price_php
-            FROM vw_v8_restaurant_daily_signals
+            FROM {legacy_signal_source()}
             WHERE date_key BETWEEN %s AND %s GROUP BY restaurant_key
         ) f ON f.restaurant_key=r.restaurant_key
         LEFT JOIN (
@@ -254,6 +334,7 @@ def period_restaurants(db, period):
             GROUP BY restaurant_key
         ) ur ON ur.restaurant_key=r.restaurant_key
         WHERE r.operational_status = 'OPERATIONAL'
+        {"AND r.bi_scope='LEGACY'" if expanded_directory() else ""}
         ORDER BY r.restaurant_name, r.restaurant_key
     """
     rows = fetch_all(db, sql, params)
@@ -426,30 +507,35 @@ def restaurants():
         "%"
     )
 
+    extra = f", {DIRECTORY_FIELDS}" if expanded_directory() else ""
+    address = "NULLIF(r.street_address,'')" if expanded_directory() else "r.street_address"
+    cuisine, cuisine_join, cuisine_extra = reviewed_cuisine_sql()
     with connection() as db:
         rows = fetch_all(
             db,
-            """
+            f"""
             SELECT
                 r.restaurant_key,
                 r.external_place_id,
                 r.restaurant_name,
                 r.branch_label,
-                r.street_address,
+                {address} AS street_address,
                 r.distance_to_ust_km,
                 z.zone_name,
                 z.zone_key,
-                c.cuisine_name
-            FROM dim_restaurant r
+                {cuisine} AS cuisine_name
+                {extra}{cuisine_extra}
+            FROM {directory_relation()} r
             JOIN dim_zone z
                 ON z.zone_key = r.zone_key
             JOIN dim_cuisine c
                 ON c.cuisine_key = r.primary_cuisine_key
-            WHERE r.operational_status = 'OPERATIONAL'
+            {cuisine_join}
+            WHERE {directory_predicate()}
               AND (
                   r.restaurant_name LIKE %s
                   OR r.street_address LIKE %s
-                  OR c.cuisine_name LIKE %s
+                  OR {cuisine} LIKE %s
               )
             ORDER BY
                 r.restaurant_name,
@@ -459,6 +545,7 @@ def restaurants():
             (pattern, pattern, pattern, limit, offset)
         )
 
+    parse_cuisine_annotation(rows)
     return jsonify({
         "status": "ok",
         "restaurants": normalize_json(rows),
@@ -474,17 +561,37 @@ def restaurants():
 def reporting_coverage():
     today = datetime.now(MANILA).date()
     with connection() as db:
-        rows = fetch_all(db, """
+        cohort = "AND r.bi_scope='LEGACY'" if expanded_directory() else ""
+        rows = fetch_all(db, f"""
             SELECT (
                 SELECT MAX(v.report_date)
-                FROM vw_v8_restaurant_daily_signals v
+                FROM {legacy_signal_source()}
                 JOIN dim_restaurant r ON r.restaurant_key = v.restaurant_key
-                WHERE r.operational_status = 'OPERATIONAL' AND v.report_date <= %s
+                WHERE r.operational_status = 'OPERATIONAL' {cohort} AND v.report_date <= %s
             ) AS latest_reporting_date, (
                 SELECT DATE(MAX(submitted_at)) FROM app_user_reviews WHERE submitted_at < %s
             ) AS latest_report_submission_date
         """, (today, today + timedelta(days=1)))
     return jsonify({"status": "ok", **normalize_json(rows[0]), "data_origin": "warehouse"})
+
+
+@app.get("/api/dashboard/directory-coverage")
+def directory_coverage():
+    if not expanded_directory():
+        return jsonify({"status":"error","message":"Expanded directory disabled"}), 404
+    period = parse_period(request.args)
+    with connection() as db:
+        stats, = fetch_all(db, f"""SELECT
+            (SELECT COUNT(*) FROM {directory_relation()} r WHERE {directory_predicate()}) AS public_listings,
+            (SELECT COUNT(DISTINCT v.restaurant_key) FROM {legacy_signal_source()}
+             JOIN dim_restaurant r USING(restaurant_key)
+             WHERE r.bi_scope='LEGACY' AND r.operational_status='OPERATIONAL'
+             AND v.date_key BETWEEN %s AND %s) AS modeled_venues,
+            (SELECT COUNT(DISTINCT restaurant_key) FROM app_user_reviews
+             WHERE submission_source='GUEST' AND submitted_at >= %s AND submitted_at < %s)
+             AS guest_self_reported_venues""",
+            (period["start_key"],period["end_key"],period["start_datetime"],period["end_exclusive"]))
+    return jsonify({"status":"ok", **normalize_json(stats)})
 
 
 @app.get("/api/dashboard/overview")
@@ -502,14 +609,37 @@ def restaurant_detail(restaurant_key):
     period = parse_period(request.args)
     with connection() as db:
         matches = [r for r in period_restaurants(db, period) if r["restaurant_key"] == restaurant_key]
+        if expanded_directory():
+            cuisine, cuisine_join, cuisine_extra = reviewed_cuisine_sql()
+            details = fetch_all(db, f"""SELECT r.restaurant_key, r.external_place_id,
+                    r.restaurant_name, r.branch_label, r.distance_to_ust_km,
+                    NULLIF(r.street_address,'') AS street_address,
+                    {cuisine} AS cuisine_name,
+                    z.zone_name, {DIRECTORY_FIELDS}{cuisine_extra}
+                FROM {directory_relation()} r JOIN dim_zone z USING(zone_key)
+                JOIN dim_cuisine c ON c.cuisine_key=r.primary_cuisine_key
+                {cuisine_join}
+                WHERE r.restaurant_key=%s AND ({directory_predicate()})""", (restaurant_key,))
+            parse_cuisine_annotation(details)
+            if not details:
+                return jsonify({"status": "error", "message": "Restaurant not found"}), 404
+            if matches:
+                matches[0].update(details[0])
+            else:
+                recent, = fetch_all(db, f"""SELECT {REPORT_AGGREGATES} FROM app_user_reviews
+                    WHERE restaurant_key=%s AND submitted_at >= %s AND submitted_at < %s""",
+                    (restaurant_key, period["start_datetime"], period["end_exclusive"]))
+                summarize_report_counts(recent)
+                return jsonify({"status":"ok", "restaurant":normalize_json({**details[0], **recent}),
+                                "history":[], "period":{"from":period["from"],"to":period["to"]}})
         if not matches:
             return jsonify({"status": "error", "message": "Restaurant not found"}), 404
-        history = fetch_all(db, """SELECT report_date,
+        history = fetch_all(db, f"""SELECT report_date,
                     CASE WHEN total_review_count > 0 AND public_avg_rating BETWEEN 1 AND 5 THEN public_avg_rating END AS public_avg_rating,
                     modeled_demand, proxy_delivery_mins, cancellation_risk_index,
                     CASE WHEN total_review_count > 0 AND public_avg_rating BETWEEN 1 AND 5 THEN rating_health END AS rating_health,
                     delivery_health, cancellation_health
-                    FROM vw_v8_restaurant_daily_signals
+                    FROM {legacy_signal_source()}
                     WHERE restaurant_key=%s AND date_key BETWEEN %s AND %s
                     ORDER BY date_key""", (restaurant_key, period["start_key"], period["end_key"]))
     return jsonify({"status": "ok", "restaurant": normalize_json(matches[0]),
@@ -524,7 +654,7 @@ def trends():
     with connection() as db:
         rows = fetch_all(
             db,
-            """
+            f"""
             SELECT
                 v.report_date,
                 COUNT(*) AS restaurants_observed,
@@ -539,11 +669,12 @@ def trends():
                         END
                     ), 2
                 ) AS public_avg_rating
-            FROM vw_v8_restaurant_daily_signals v
+            FROM {legacy_signal_source()}
             JOIN dim_restaurant r
                 ON r.restaurant_key = v.restaurant_key
             WHERE v.date_key BETWEEN %s AND %s
               AND r.operational_status = 'OPERATIONAL'
+              {"AND r.bi_scope='LEGACY'" if expanded_directory() else ""}
             GROUP BY v.report_date
             ORDER BY v.report_date
             """,
@@ -639,13 +770,15 @@ def submit_user_review():
     report = (restaurant_key, minutes, cancelled, rating, text.strip())
     try:
         with connection() as db:
-            key, inserted = execute(db, """INSERT INTO app_user_reviews (
+            gate = (f"({directory_predicate()}) AND r.guest_reporting_enabled=TRUE"
+                    if expanded_directory() else "operational_status='OPERATIONAL'")
+            key, inserted = execute(db, f"""INSERT INTO app_user_reviews (
                         user_id, submission_source, restaurant_key,
                         actual_observed_delivery_mins, order_was_cancelled,
                         rating_score, comment_text, client_submission_id
                     ) SELECT NULL,'GUEST',restaurant_key,%s,%s,%s,%s,%s
-                    FROM dim_restaurant
-                    WHERE restaurant_key=%s AND operational_status='OPERATIONAL'""",
+                    FROM {directory_relation()} r
+                    WHERE restaurant_key=%s AND {gate}""",
                     (*report[1:], client_id, restaurant_key))
     except mysql.connector.IntegrityError as error:
         if error.errno != ER_DUP_ENTRY:
@@ -806,6 +939,12 @@ def session_info():
             and request.remote_addr in {"127.0.0.1", "::1"}
         ),
     }
+    if versioned_bi_enabled():
+        capabilities["versioned_bi"] = True
+    if current_bi_enabled():
+        capabilities["current_bi_model"] = CURRENT_BI_MODEL
+    if expanded_directory():
+        capabilities["expanded_directory"] = True
     if eligibility:
         if "guest_visitor" not in session:
             session["guest_visitor"] = secrets.token_urlsafe(24)
@@ -867,6 +1006,8 @@ def update_alert_status(alert_id):
 @app.post("/api/etl/refresh")
 def trigger_etl_refresh():
     """Explicit development-only ETL maintenance endpoint; never called by public UI."""
+    if expanded_directory():
+        return jsonify({"status":"error","message":"ETL refresh disabled for expanded directory"}), 404
     from etl.warehouse_loader import run_etl_pipeline
     with connection() as db:
         require_manager(db)
@@ -921,6 +1062,201 @@ def serve_frontend(filename, *, live_required=False):
     return Response(markup, mimetype="text/html", headers={"Cache-Control": "no-store"})
 
 
+CURRENT_BI_MODEL = "ust-distance-scenario-v2"
+
+
+def current_bi_enabled():
+    return (expanded_directory() and revised_directory()
+            and os.getenv("BLUEPLATE_CURRENT_BI_MODEL") == CURRENT_BI_MODEL)
+
+
+def warehouse_freshness(db):
+    status, = fetch_all(db, """
+        SELECT (SELECT MAX(report_date) FROM vw_bi_analytical_date) AS warehouse_as_of,
+               (SELECT MAX(submitted_at) FROM app_user_reviews WHERE submission_source='GUEST') AS latest_genuine_report,
+               (SELECT MAX(committed_at) FROM directory_publication_batch) AS directory_updated_at
+    """)
+    status["analytical_dates"] = fetch_all(db, """
+        SELECT a.report_date,a.model_version,a.modeled_venues,m.metric_family
+        FROM vw_bi_analytical_date a JOIN dim_bi_model_version m USING(model_version)
+        ORDER BY a.report_date DESC,a.model_version
+    """)
+    return normalize_json(status)
+
+
+@app.get("/api/dashboard/freshness")
+def dashboard_freshness():
+    if not versioned_bi_enabled():
+        return jsonify({"status":"error","message":"Warehouse freshness unavailable"}),404
+    with connection() as db:
+        return jsonify({"status":"ok",**warehouse_freshness(db)}),200,{"Cache-Control":"no-store"}
+
+
+def scenario_publication(db):
+    selected = request.args.get("date")
+    if selected is not None:
+        try:
+            key = int(datetime.strptime(selected,"%Y-%m-%d").strftime("%Y%m%d"))
+        except ValueError:
+            raise ValidationError("Invalid analytical date") from None
+    else:
+        key = None
+    return fetch_all(db, """
+        SELECT p.date_key,p.model_version,p.audit_model_version,p.display_metadata,p.audited_snapshot_sha256
+        FROM bi_model_publication p JOIN dim_bi_model_version m USING(model_version)
+        WHERE m.metric_family='DELIVERY_SCENARIO' AND (%s IS NULL OR p.date_key=%s)
+        ORDER BY p.date_key DESC,p.published_at DESC,p.model_version DESC LIMIT 1
+    """,(key,key))
+
+
+@app.get("/api/dashboard/student-period")
+def student_dashboard_period():
+    if not (versioned_bi_enabled() and current_bi_enabled()):
+        return jsonify({"status":"error","message":"Reporting period unavailable"}),404
+    latest = request.args.get("latest") == "1"
+    period = None if latest else parse_period(request.args)
+    end = (datetime.now(MANILA).date()+timedelta(days=1)) if latest else period["end_exclusive"]
+    start = None if latest else period["start_datetime"]
+    with connection() as db:
+        selection = fetch_all(db, """
+            SELECT a.report_date,a.model_version,a.modeled_venues,m.metric_family
+            FROM vw_bi_analytical_date a JOIN dim_bi_model_version m USING(model_version)
+            WHERE (%s IS NULL OR a.report_date >= %s) AND a.report_date < %s
+            ORDER BY a.report_date DESC,(m.metric_family='DELIVERY_SCENARIO') DESC,a.model_version DESC LIMIT 1
+        """,(start,start,end))
+        params = (start,start,end)
+        condition = "submission_source='GUEST' AND (%s IS NULL OR submitted_at >= %s) AND submitted_at < %s"
+        totals, = fetch_all(db,f"""SELECT {REPORT_AGGREGATES}, COUNT(DISTINCT restaurant_key) AS reported_venues
+                                FROM app_user_reviews WHERE {condition}""",params)
+        per_venue = fetch_all(db,f"""SELECT restaurant_key,{REPORT_AGGREGATES}
+                                  FROM app_user_reviews WHERE {condition} GROUP BY restaurant_key""",params)
+        ratings = fetch_all(db,f"""SELECT rating_score AS label,COUNT(*) AS total FROM app_user_reviews
+                                WHERE {condition} AND rating_score BETWEEN 1 AND 5 GROUP BY rating_score ORDER BY label""",params)
+        durations = fetch_all(db,f"""SELECT CASE WHEN actual_observed_delivery_mins<=20 THEN '20 min or less'
+               WHEN actual_observed_delivery_mins<=40 THEN '21–40 min'
+               WHEN actual_observed_delivery_mins<=60 THEN '41–60 min' ELSE 'Over 60 min' END AS label,
+               COUNT(*) AS total,MIN(actual_observed_delivery_mins) AS sort_minutes
+               FROM app_user_reviews WHERE {condition} AND order_was_cancelled=0
+                 AND actual_observed_delivery_mins BETWEEN 1 AND 240 GROUP BY label ORDER BY sort_minutes""",params)
+        directory, = fetch_all(db,f"SELECT COUNT(*) AS public_listings FROM {directory_relation()} r WHERE {directory_predicate()}")
+        closures, = fetch_all(db, """
+            SELECT COUNT(*) AS reviewed_closures
+            FROM revised_directory_review a JOIN dim_restaurant r USING(restaurant_key)
+            WHERE a.public_visible=FALSE AND a.verification_provenance='USER_CONFIRMED'
+              AND r.bi_scope='LEGACY' AND r.operational_status='OPERATIONAL'
+              AND a.operating_status IN ('CONFIRMED_CLOSED_DURATION_UNSPECIFIED','TEMPORARILY_CLOSED','PERMANENTLY_CLOSED')
+        """)
+    summarize_report_counts(totals)
+    for row in per_venue:
+        summarize_report_counts(row)
+    return jsonify(normalize_json({"status":"ok","snapshot":selection[0] if selection else None,
+                     "report_totals":totals,"reports_by_venue":per_venue,"ratings":ratings,
+                     "durations":[{"label":r["label"],"total":r["total"]} for r in durations],
+                     "public_listings":directory["public_listings"],
+                     "reviewed_closures":closures["reviewed_closures"],
+                     "period":None if latest else {"from":period["from"],"to":period["to"]}})),200,{"Cache-Control":"no-store"}
+
+
+@app.get("/api/dashboard/model/current")
+def current_bi_model():
+    if not current_bi_enabled():
+        return jsonify({"status": "error", "message": "Current model unavailable"}), 404
+    with connection() as db:
+        if versioned_bi_enabled():
+            stored = scenario_publication(db)
+            if not stored:
+                return jsonify({"status":"error","message":"Current model unavailable"}),404
+            publication = stored[0]
+            facts = fetch_all(db, """
+                SELECT v.*,f.reviewed_attributes
+                FROM vw_bi_modeled_restaurant_day v
+                JOIN fact_bi_restaurant_scenario f USING(date_key,model_version,restaurant_key)
+                WHERE v.date_key=%s AND v.model_version=%s
+                ORDER BY f.restaurant_key
+            """,(publication["date_key"],publication["model_version"]))
+            from etl.versioned_bi import read_scenario_rows
+            payload = json.loads(publication["display_metadata"])
+            payload["restaurants"] = sorted(read_scenario_rows(facts),key=lambda r:r["external_place_id"])
+            payload["counts"]["modeled_venues"] = len(facts)
+            snapshot_hash = publication["audited_snapshot_sha256"]
+        else:
+            stored = fetch_all(db,"SELECT payload,snapshot_sha256 FROM bi_model_snapshot WHERE model_version=%s",
+                               (CURRENT_BI_MODEL,))
+            if stored:
+                payload = json.loads(stored[0]["payload"])
+                snapshot_hash = stored[0]["snapshot_sha256"]
+        if not stored:
+            return jsonify({"status": "error", "message": "Current model unavailable"}), 404
+        coverage, = fetch_all(db, f"""
+            SELECT (SELECT COUNT(*) FROM {directory_relation()} r WHERE {directory_predicate()}) AS public_listings,
+                   COUNT(*) AS genuine_reports, COUNT(DISTINCT restaurant_key) AS genuine_report_venues
+            FROM app_user_reviews WHERE submission_source='GUEST'
+        """)
+        totals, = fetch_all(db, f"""SELECT {REPORT_AGGREGATES}
+            FROM app_user_reviews WHERE submission_source='GUEST'""")
+        by_venue = fetch_all(db, f"""SELECT restaurant_key, {REPORT_AGGREGATES}
+            FROM app_user_reviews WHERE submission_source='GUEST' GROUP BY restaurant_key""")
+        annotations = current_cuisine_annotations(db) if revised_directory() else {}
+    if annotations:
+        for row in payload["restaurants"]:
+            annotation = annotations.get(row["external_place_id"])
+            if annotation is not None:
+                row["cuisine_classification"] = annotation
+        payload["cuisine_distribution"] = dict(Counter(
+            row.get("cuisine_classification",{}).get("label","Not specified") for row in payload["restaurants"]))
+    summarize_report_counts(totals)
+    for row in by_venue:
+        summarize_report_counts(row)
+    return jsonify({"status": "ok", "snapshot": normalize_json(payload), "coverage": coverage,
+                    "snapshot_sha256": snapshot_hash,
+                    "report_totals": normalize_json(totals), "reports_by_venue": normalize_json(by_venue)}), 200, {"Cache-Control": "no-store"}
+
+
+@app.get("/api/exports/model/current.csv")
+def export_current_bi_model():
+    if not current_bi_enabled():
+        return jsonify({"status": "error", "message": "Current model unavailable"}), 404
+    with connection() as db:
+        version = CURRENT_BI_MODEL
+        if versioned_bi_enabled():
+            publications = scenario_publication(db)
+            version = publications[0]["audit_model_version"] if publications else None
+        stored = fetch_all(db,"SELECT csv_export FROM bi_model_snapshot WHERE model_version=%s",(version,))
+        annotations = current_cuisine_annotations(db) if revised_directory() and request.args.get("audit")!="1" else {}
+    if not stored:
+        return jsonify({"status": "error", "message": "Current model unavailable"}), 404
+    content = bytes(stored[0]["csv_export"])
+    if annotations:
+        base = csv.DictReader(io.StringIO(content.decode("utf-8")))
+        output = io.StringIO(newline="")
+        keys = ("label","cuisines","specialties","establishment_type","source","evidence")
+        columns = ["reviewed_cuisine","cuisine_categories","food_specialties","establishment_type","classification_source","classification_evidence"]
+        writer = csv.DictWriter(output,fieldnames=[*base.fieldnames,*columns])
+        writer.writeheader()
+        for row in base:
+            annotation = annotations.get(row["external_place_id"],{})
+            values = {}
+            for column,key in zip(columns,keys):
+                value = annotation.get(key)
+                text = "; ".join(value) if isinstance(value,list) else str(value or "")
+                values[column] = "'" + text if text.lstrip().startswith(("=", "+", "-", "@")) else text
+            writer.writerow({**row,**values})
+        content = output.getvalue().encode("utf-8")
+    return Response(content, mimetype="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="{version}.csv"',
+                             "Cache-Control": "no-store"})
+
+
+@app.get("/dashboard/schema/versioned-bi.sql")
+def versioned_bi_schema():
+    return send_from_directory(PROJECT_ROOT / "database","13_versioned_bi.sql",mimetype="text/plain")
+
+
+@app.get("/dashboard/schema/warehouse-methodology")
+def warehouse_methodology():
+    return send_from_directory(PROJECT_ROOT / "docs","VERSIONED_BI_WAREHOUSE.md",mimetype="text/plain")
+
+
 @app.get("/dashboard/")
 def serve_dashboard():
     return serve_frontend("admin/index.html", live_required=True)
@@ -937,6 +1273,8 @@ def serve_public():
 def serve_admin():
     if os.getenv("BLUEPLATE_ENV", "development").lower() == "production":
         return jsonify({"status": "error", "message": "Admin sign-in not implemented"}), 403
+    if current_bi_enabled():
+        return redirect("/dashboard/")
     return serve_frontend("admin/index.html")
 
 
