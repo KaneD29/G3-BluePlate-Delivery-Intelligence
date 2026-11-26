@@ -215,6 +215,9 @@ function testReceiptMarkup() {
     'bp-report-success': {classList: {add() {}, remove() {}}},
     'audit-form': {classList: {add() {}}},
     'bp-submit-another': {},
+    'bp-copy-reference': {},
+    'bp-report-reference': {},
+    'bp-receipt-feedback': {},
     'bp-success-heading': {focus() { this.focused = true; }},
     'report-form-section': {scrollIntoView() {}},
   };
@@ -222,7 +225,7 @@ function testReceiptMarkup() {
     showSubmissionConfirmation({status:'created',user_review_id:71,comment_text:'Private note',client_submission_id:'internal-uuid'});
   `, {$: id => elements[id], liveMode: true, syntheticDemo: false, html: String});
   assert.match(elements['bp-report-success'].innerHTML, /Report saved/);
-  assert.match(elements['bp-report-success'].innerHTML, /Report reference <strong>#71/);
+  assert.match(elements['bp-report-success'].innerHTML, /id="bp-report-reference" type="text" readonly value="71"/);
   assert.match(elements['bp-report-success'].innerHTML, /href="#recent"/);
   assert.doesNotMatch(elements['bp-report-success'].innerHTML, /Private note|internal-uuid|Browser time/);
   assert.equal(elements['bp-success-heading'].focused, true);

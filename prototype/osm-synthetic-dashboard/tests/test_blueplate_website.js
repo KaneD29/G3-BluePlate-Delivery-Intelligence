@@ -132,10 +132,10 @@ assert.deepStrictEqual(many.map(metric=>metric[1]),['6','4.00 / 5','50.0 min','2
 assert.strictEqual(many[2][2],'Based on 2 completed deliveries');
 assert.match(many[3][2],/1 cancelled out of 5/);
 
-const directoryStart=source.indexOf('function directoryRows()');
+const directoryStart=source.indexOf('function directoryRows(');
 const directoryEnd=source.indexOf('function chartTheme()',directoryStart);
 const controls=Object.fromEntries([
- 'directory-search','filter-zone','filter-health','filter-cuisine','filter-street','restaurant-count','filter-summary',
+ 'directory-search','filter-zone','filter-cuisine','filter-street','restaurant-count','filter-summary',
  'directory-rows','bp-directory-pagination','bp-directory-prev','bp-directory-next','bp-directory-position'
 ].map(id=>[id,{value:'ALL',focus(){this.focused=true;}}]));
 controls['directory-search'].value='';
@@ -148,13 +148,25 @@ let listings=Array.from({length:119},(_,i)=>({
 const directoryContext={...metricContext,currentModel:null,$:id=>controls[id],enriched:()=>listings,html:String,
  liveMode:true,syntheticDemo:false,dateRangeLabel:()=> '2026-11-15'};
 vm.runInNewContext(`const DIRECTORY_PAGE_SIZE=10;let directoryPage=1,sortBy='default';\n`+
- source.slice(metricsStart,metricsEnd)+source.slice(directoryStart,directoryEnd),directoryContext);
+ source.slice(metricsStart,metricsEnd)+source.slice(source.indexOf("const DIRECTORY_SORT_OPTIONS"),source.indexOf("function initCyclingSortMenu"))+source.slice(directoryStart,directoryEnd),directoryContext);
 const runDirectory=code=>vm.runInNewContext(code,directoryContext);
 const rowIds=()=>Array.from(controls['directory-rows'].innerHTML.matchAll(/data-restaurant-detail="(\d+)"/g),m=>Number(m[1]));
 runDirectory('renderDirectory()');
-assert.equal(controls['restaurant-count'].textContent,'· 119 matching results');
+assert.equal(controls['restaurant-count'].textContent,'119 restaurants');
 assert.match(controls['bp-directory-position'].textContent,/Page 1 of 12/);
 assert.equal(rowIds().length,10);
+listings[118].etaLow=5;listings[118].etaHigh=45;
+listings[117].etaLow=20;listings[117].etaHigh=24;
+listings[118].genuineTotals={auditor_report_count:2,report_rating_count:1,auditor_avg_rating:4,completed_delivery_count:1,observed_delivery_mins:20};
+listings[117].genuineTotals={auditor_report_count:1,report_rating_count:1,auditor_avg_rating:5,completed_delivery_count:1,observed_delivery_mins:30};
+for(const [key,first,second] of [['eta-asc',118,119],['eta-desc',119,118],['rating-asc',119,118],['rating-desc',118,119],['delivery-asc',119,118],['delivery-desc',118,119],['reports-desc',119,118]]){
+ runDirectory(`sortBy='${key}'; renderDirectory()`);
+ assert.deepStrictEqual(rowIds().slice(0,2),[first,second],key);
+}
+runDirectory("sortBy='reports-asc'; renderDirectory()");
+assert.equal(rowIds()[0],1,'Zero report counts sort ahead of positive counts');
+runDirectory("sortBy='default'; renderDirectory()");
+
 assert.match(controls['directory-rows'].innerHTML,/₱125.*Modeled average/);
 assert.match(controls['directory-rows'].innerHTML,/Based on 1 rating/);
 assert.doesNotMatch(controls['directory-rows'].innerHTML,/4\.30/);

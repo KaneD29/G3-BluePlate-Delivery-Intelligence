@@ -1,6 +1,6 @@
 {
-  "baseline": "97e582ffc3667f1b1a458cf518fef2a3ab3e196f",
-  "release": "Step 7.15L",
+  "baseline": "f804fd6d8a9b52cfca932432f3fc707bd83bcc5a",
+  "release": "Step 7.15L.1",
   "inventory": [
     {
       "path": ".dockerignore",
@@ -326,8 +326,8 @@
     },
     {
       "path": "frontend/admin/index.html",
-      "sha256": "4b62adbd6a25ffccdffeace355305799f9659799820ecde202fbec0ccb81aa49",
-      "bytes": 23083,
+      "sha256": "6915df448a7e736e77e0ffa282124a5c1a74bfc74d425c5eea1758980c5ae97a",
+      "bytes": 21980,
       "application": true,
       "deployment": true
     },
@@ -340,8 +340,8 @@
     },
     {
       "path": "frontend/assets/app.js",
-      "sha256": "8576a9706fb68380dc0e55c57ebc9b0e0c3cc1e40ea3f07465dca05fa6efb414",
-      "bytes": 155537,
+      "sha256": "5675b572f33cea6d7e006ba1028939777ba27c56b1b94e2b0e26bd674cf25e1c",
+      "bytes": 160404,
       "application": true,
       "deployment": true
     },
@@ -368,8 +368,8 @@
     },
     {
       "path": "frontend/assets/style.css",
-      "sha256": "33fa95bacf4e2f7a1a93200fe81395e914c9017740962f18ef7a0f0f33e5ed03",
-      "bytes": 58190,
+      "sha256": "484816413b1a16b1659b798548b349bac90332ffb6d2c6101933e1e9922dcfc1",
+      "bytes": 61985,
       "application": true,
       "deployment": true
     },
@@ -431,8 +431,8 @@
     },
     {
       "path": "tests/test_blueplate_website.js",
-      "sha256": "d1a705bdf62452691a9ece6bbee559045e3da3e8ac1ad8065ba80acad2d9730d",
-      "bytes": 12806,
+      "sha256": "5d79963148afb879550b46e3666ade5ba76f4895169e66970894f4c0333301cf",
+      "bytes": 13799,
       "application": true,
       "deployment": true
     },
@@ -452,8 +452,8 @@
     },
     {
       "path": "tests/test_guest_reports.js",
-      "sha256": "5e102917da8eeaff5a6faadf9a3c5f6039a3db940eb9d60e24d06d57ef520231",
-      "bytes": 12576,
+      "sha256": "873584d89093dd6301739e86cd0c14afbfe5c2a6447ceca5b077446833caba19",
+      "bytes": 12695,
       "application": true,
       "deployment": true
     },

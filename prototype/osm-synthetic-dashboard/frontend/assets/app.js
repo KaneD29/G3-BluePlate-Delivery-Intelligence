@@ -508,7 +508,7 @@ function initZoneInfo(){
   if(!button)return;
   opener=button;
   const explanations={
-   notices:['About delivery notices','Updates are based on restaurant information, student feedback, and delivery estimates. They are not live delivery-platform alerts.'],
+   notices:['About updates & advisories','These updates are based on restaurant listings, student feedback, and modeled delivery estimates. They do not represent live delivery-platform alerts.'],
    eta:['Estimated delivery time','This is an estimate of preparation, travel, and handoff time. Actual deliveries may take longer or shorter depending on traffic, weather, restaurant workload, and other conditions. The estimate does not use live traffic or weather.'],
    stress:['Delivery travel difficulty','The Transit Stress Index compares estimated travel time with an assumed 15-minute travel budget. A higher score means more of the travel budget is needed. It does not predict whether an order will be late or canceled.'],
   };
@@ -524,14 +524,14 @@ function initAdmin(){document.querySelectorAll('.nav-link').forEach(btn=>{btn.on
  $('open-sort').onclick=()=>togglePopup('sort-popover','open-sort');$('open-filter').onclick=()=>togglePopup('filter-popover','open-filter');$('open-search').onclick=openSearch;$('close-search').onclick=closeSearch;$('directory-search').oninput=renderDirectory;
  $('bp-directory-prev').onclick=()=>changeDirectoryPage(-1);
  $('bp-directory-next').onclick=()=>changeDirectoryPage(1);
- // Replace Safari's native select with a compact six-category click-to-cycle menu.
+ // Use the directory sort choices with their default directions.
  initCyclingSortMenu();
  $('filter-street').onchange=renderDirectory;
  $('bp-demand-scenario').onchange=e=>{
   demandScenario=e.target.value;
   renderCharts();renderDirectory(true);
  };
- $('filter-zone').onchange=renderDirectory;$('filter-health').onchange=renderDirectory;$('filter-cuisine').onchange=renderDirectory;$('filter-reset').onclick=()=>{$('filter-zone').value='ALL';$('filter-health').value='ALL';$('filter-cuisine').value='ALL';$('filter-street').value='ALL';syncCompactSelects();closePopups();renderDirectory();};
+ $('filter-zone').onchange=renderDirectory;$('filter-cuisine').onchange=renderDirectory;$('filter-reset').onclick=()=>{$('filter-zone').value='ALL';$('filter-cuisine').value='ALL';$('filter-street').value='ALL';syncCompactSelects();closePopups();renderDirectory();};
  const cuisines=[...new Set(state.restaurants.map(r=>r.cuisine))].sort();$('filter-cuisine').innerHTML+=[...cuisines].map(c=>`<option value="${html(c)}">${html(c)}</option>`).join('');
  // Action Log fields are created before compact dropdowns are initialized.
  if(!liveRequired)initManagerActionLog();
@@ -544,57 +544,51 @@ function initAdmin(){document.querySelectorAll('.nav-link').forEach(btn=>{btn.on
  $('insights').querySelector('.section-head p').textContent=liveRequired?'Compare delivery estimates, restaurant options, and student feedback.':'Period-specific comparisons and trends using illustrative data.';
  $('trend-chart').closest('.chart-panel').querySelector('p').textContent='Modeled demand and delivery minutes, grouped by reporting period.';
  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){e.preventDefault();openSearch();}});
+ document.querySelector('.directory-toolbar .tools').addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||e.defaultPrevented)return;
+  const id=['sort','filter'].find(name=>!$(name+'-popover').classList.contains('hidden'));
+  if(id){e.preventDefault();closePopups();$('open-'+id).focus();}
+ });
  document.addEventListener('click',e=>{if(!e.target.closest('.tools')&&!e.target.closest('.bp-compact-select'))closePopups();if(!e.target.closest('.bp-compact-select'))closeCompactSelectMenus();});
  renderAdmin();
 }
 
-// Sort state per chosen category: Default -> Ascending -> Descending -> Default.
-// The menu remains open so a second or third click is immediate.
+const DIRECTORY_SORT_OPTIONS = [
+ ['name','Restaurant name','A–Z','Z–A'],
+ ['distance','Distance','Nearest first','Farthest first'],
+ ['eta','Estimated delivery time','Fastest first','Slowest first'],
+ ['stress','Travel difficulty','Lowest first','Highest first'],
+ ['rating','Student rating','Lowest first','Highest first','desc'],
+ ['delivery','Reported delivery time','Fastest first','Slowest first'],
+ ['reports','Student report count','Fewest reports first','Most reports first','desc'],
+];
 function initCyclingSortMenu(){
  const pop=$('sort-popover');
- const options=[
-   {key:'price',name:'Price',asc:'Low to high',desc:'High to low'},
-   {key:'name',name:'Name',asc:'A to Z',desc:'Z to A'},
-   {key:'distance',name:'Distance',asc:'Closest first',desc:'Farthest first'},
-   {key:'risk',name:'Risk',asc:'Lowest first',desc:'Highest first'},
-   {key:'rating',name:'Rating',asc:'Lowest first',desc:'Highest first'},
-   {key:'health',name:'Health',asc:'Normal first',desc:'Critical first'}
- ];
- let activeCategory=null;
- let phase=0;
- pop.innerHTML=`<div class="sort-menu-heading">Sort by</div>
-   <div class="sort-menu-list">${options.map(o=>`
-     <button type="button" class="sort-choice" data-sort-key="${o.key}" aria-pressed="false">
-       <span class="sort-choice-main"><span class="sort-choice-name">${o.name}</span><span class="sort-choice-mode"></span></span>
-       <span class="sort-choice-check" aria-hidden="true">✓</span>
-     </button>`).join('')}</div>
-   <div class="sort-menu-hint">Click the same option to cycle: default → ascending → descending → default.</div>`;
- const updateMenu=()=>{
-   pop.querySelectorAll('[data-sort-key]').forEach(b=>{
-     const chosen=activeCategory===b.dataset.sortKey;
-     const option=options.find(o=>o.key===b.dataset.sortKey);
-     b.classList.toggle('is-active',chosen);
-     b.setAttribute('aria-pressed',String(chosen));
-     b.querySelector('.sort-choice-mode').textContent=chosen
-       ?(phase===0?'Default order':phase===1?option.asc:option.desc)
-       :'Click to select';
-   });
- };
+ pop.innerHTML=`<div class="sort-menu-heading">Sort by</div><div class="sort-menu-list">${DIRECTORY_SORT_OPTIONS.map(([key,name])=>`
+  <button type="button" class="sort-choice" data-sort-key="${key}" aria-pressed="false"><span class="sort-choice-main"><span class="sort-choice-name">${name}</span><span class="sort-choice-mode" hidden></span></span><span class="sort-choice-check" aria-hidden="true"></span></button>`).join('')}</div>
+  <div class="sort-menu-hint">Select again to reverse. Estimates sort by range midpoint.</div>
+  <button type="button" class="btn secondary" data-reset-sort>Reset sorting</button>`;
+ function sync(){
+  pop.querySelectorAll('[data-sort-key]').forEach(button=>{
+   const [key,,asc,desc]=DIRECTORY_SORT_OPTIONS.find(o=>o[0]===button.dataset.sortKey);
+   const chosen=sortBy.startsWith(key+'-'), ascending=sortBy.endsWith('-asc');
+   button.classList.toggle('is-active',chosen);
+   button.setAttribute('aria-pressed',String(chosen));
+   const mode=button.querySelector('.sort-choice-mode');
+   mode.hidden=!chosen;mode.textContent=chosen?(ascending?asc:desc):'';
+   button.querySelector('.sort-choice-check').textContent=chosen?(ascending?'↑':'↓'):'';
+  });
+ }
  pop.addEventListener('click',e=>{
-   const b=e.target.closest('[data-sort-key]');
-   if(!b || !pop.contains(b))return;
-   if(activeCategory===b.dataset.sortKey){
-     phase=(phase+1)%3;
-   } else {
-     activeCategory=b.dataset.sortKey;
-     phase=0;
-   }
-   sortBy=phase===0?'default':`${activeCategory}-${phase===1?'asc':'desc'}`;
-   updateMenu();
-   renderDirectory();
+  const button=e.target.closest('[data-sort-key],[data-reset-sort]');
+  if(!button)return;
+  const key=button.dataset.sortKey;
+  const option=DIRECTORY_SORT_OPTIONS.find(o=>o[0]===key);
+  sortBy=option?key+'-'+(sortBy.startsWith(key+'-')?(sortBy.endsWith('-asc')?'desc':'asc'):option[4]||'asc'):'default';
+  sync();renderDirectory();
  });
- pop.addEventListener('bp-reset-sort',()=>{activeCategory=null;phase=0;sortBy='default';updateMenu();});
- updateMenu();
+ pop.addEventListener('bp-reset-sort',()=>{sortBy='default';sync();});
+ sync();
 }
 // Reusable select enhancement for alerts, manager-note zones and restaurant filters.
 // The original <select> is retained as the data source and handles existing change listeners.
@@ -608,7 +602,7 @@ function syncCompactSelects(){
  document.querySelectorAll('select.bp-native-select').forEach(s=>s._bpSync?.());
 }
 function initCompactSelects(){
- const ids=['alert-filter','note-zone','note-category','note-status','notes-filter-category','notes-filter-status','filter-zone','filter-health','filter-cuisine','bp-demand-scenario'];
+ const ids=['alert-filter','note-zone','note-category','note-status','notes-filter-category','notes-filter-status','filter-zone','filter-street','filter-cuisine','bp-demand-scenario'];
  const nameOverrides={
   'note-zone':{'UST - España Blvd':'España','UST - Dapitan St':'Dapitan','UST - P. Noval St':'P. Noval','UST - Lacson Ave':'Lacson'}
  };
@@ -625,20 +619,24 @@ function initCompactSelects(){
   trigger.setAttribute('aria-haspopup','menu');
   trigger.setAttribute('aria-expanded','false');
   trigger.setAttribute('aria-controls',id+'-menu');
-  const title=select.getAttribute('aria-label')||document.querySelector(`label[for="${id}"]`)?.textContent||'Select';
+  const title=select.getAttribute('aria-label')||document.querySelector(`label[for="${id}"],label[for="${id}-trigger"]`)?.textContent||'Select';
   const valueText=document.createElement('span');
   valueText.className='bp-select-value';
   const chevron=document.createElement('span');
   chevron.className='bp-select-chevron';
   chevron.setAttribute('aria-hidden','true');
-  chevron.textContent='⌄';
+  chevron.innerHTML='<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg>';
   trigger.append(valueText,chevron);
   const menu=document.createElement('div');
   menu.id=id+'-menu';
   menu.className='bp-option-menu hidden';
   menu.setAttribute('role','menu');
   menu.setAttribute('aria-label',title);
-  const pretty=(option)=>nameOverrides[id]?.[option.value]||option.textContent.trim();
+  const pretty=option=>{
+   const band=id==='filter-zone'&&zoneBand({zone:option.value});
+   const ranges={A:'0–500 m',B:'500–1,000 m',C:'1,000–1,500 m'};
+   return band?`Zone ${band} — ${ranges[band]}`:nameOverrides[id]?.[option.value]||option.textContent.trim();
+  };
   for(const option of Array.from(select.options)){
    const item=document.createElement('button');
    item.type='button';
@@ -665,7 +663,7 @@ function initCompactSelects(){
   wrap.append(trigger,menu);
   select.insertAdjacentElement('afterend',wrap);
   select.classList.add('bp-native-select'); // no native Safari sheet after successful enhancement
-  const matchingLabel=document.querySelector(`label[for="${id}"]`);
+  const matchingLabel=document.querySelector(`label[for="${id}"],label[for="${id}-trigger"]`);
   if(matchingLabel)matchingLabel.setAttribute('for',trigger.id);
   function update(){
    const option=Array.from(select.options).find(o=>o.value===select.value);
@@ -694,7 +692,7 @@ function initCompactSelects(){
    const items=Array.from(menu.querySelectorAll('.bp-option-choice'));
    if(!items.length)return;
    const index=items.indexOf(current);
-   items[(index+delta+items.length)%items.length].focus({preventScroll:true});
+   items[(index+delta+items.length)%items.length].focus();
   }
   trigger.addEventListener('keydown',e=>{
    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
@@ -703,18 +701,18 @@ function initCompactSelects(){
     const selected=menu.querySelector('.is-selected');
     stepFocus(selected,e.key==='ArrowDown'?1:-1);
    } else if(e.key==='Escape' && !menu.classList.contains('hidden')){
-    e.preventDefault();closeCompactSelectMenus();
+    e.preventDefault();e.stopPropagation();closeCompactSelectMenus();
    }
   });
   menu.addEventListener('keydown',e=>{
    if(e.key==='Escape'){
-    e.preventDefault();closeCompactSelectMenus();trigger.focus({preventScroll:true});
+    e.preventDefault();e.stopPropagation();closeCompactSelectMenus();trigger.focus({preventScroll:true});
    }else if(e.key==='ArrowDown'||e.key==='ArrowUp'){
     e.preventDefault();stepFocus(e.target,e.key==='ArrowDown'?1:-1);
    }else if(e.key==='Home'||e.key==='End'){
     e.preventDefault();
     const items=menu.querySelectorAll('.bp-option-choice');
-    items[e.key==='Home'?0:items.length-1]?.focus({preventScroll:true});
+    items[e.key==='Home'?0:items.length-1]?.focus();
    }else if(e.key==='Tab')closeCompactSelectMenus();
   });
   update();
@@ -941,7 +939,7 @@ function renderStudentNotices(){
  }
  $('alerts-list').innerHTML=notices.length?notices.map(({style,label,icon,title,text,date})=>
   `<article class="bp-student-notice bp-notice-${style}"><span class="bp-notice-icon" role="img" aria-label="${html(label)}">${html(icon)}</span><div><h3>${html(title)}</h3><p>${style==='caution'?'<span class="sr-only">Estimate advisory. </span>':''}${html(text)}</p>${date?`<time datetime="${html(date)}">${html(prettyManila(date))}</time>`:''}</div></article>`).join(''):
-  '<p class="empty">No delivery notices for these dates.</p>';
+  '<p class="empty">No updates or advisories for these dates.</p>';
 }
 function renderAlerts(){
  if(studentPeriod){renderStudentNotices();return;}
@@ -1186,12 +1184,28 @@ function renderNotes(){
  }).join(''):`<div class="bp-action-empty">No actions match these filters. ${actionNotes.length?'Try clearing a filter.':'Use the form above to record the first action.'}</div>`;
 }
 
-function directoryRows(){
- const query=$('directory-search').value.trim().toLocaleLowerCase(),zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value,street=$('filter-street').value;
- let arr=enriched().filter(r=>(!query||[r.name,r.branch,r.streetAddress,r.cuisine,r.zone].some(s=>String(s||'').toLowerCase().includes(query)))&&(zone==='ALL'||r.zone===zone)&&(health==='ALL'||r.health===health)&&(cuisine==='ALL'||r.cuisine===cuisine)&&(!currentModel||street==='ALL'||r.areas?.includes(street)));
+function directoryRows(population=enriched()){
+ const query=$('directory-search').value.trim().toLocaleLowerCase(),zone=$('filter-zone').value,cuisine=$('filter-cuisine').value,street=$('filter-street').value;
+ const arr=population.filter(r=>(!query||[r.name,r.branch,r.streetAddress,r.cuisine,r.zone].some(s=>String(s||'').toLowerCase().includes(query)))&&(zone==='ALL'||r.zone===zone)&&(cuisine==='ALL'||r.cuisine===cuisine)&&(!currentModel||street==='ALL'||r.areas?.includes(street)));
  if(sortBy!=='default'){
-  const sign=sortBy.endsWith('asc')?1:-1,type=sortBy.split('-')[0],priorities={NORMAL:0,WARNING:1,CRITICAL:2};
-  arr.sort((a,b)=>{if(liveMode && type!=='name'){const key={distance:'distance',price:'avgPricePhp',risk:'cancellationProxyPct',rating:currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod)?'selfReportedRating':'publicRating'}[type];if(key){const va=key==='distance'&&a[key]===999?null:a[key],vb=key==='distance'&&b[key]===999?null:b[key];if(va===null&&vb!==null)return 1;if(vb===null&&va!==null)return -1;}if(type==='health'){if(a.health==='UNKNOWN'&&b.health!=='UNKNOWN')return 1;if(b.health==='UNKNOWN'&&a.health!=='UNKNOWN')return -1;}}let d=0;switch(type){case'distance':d=a.distance-b.distance;break;case'name':d=a.name.localeCompare(b.name);break;case'price':d=a.avgPricePhp-b.avgPricePhp;break;case'risk':d=currentModel?a.transitStress-b.transitStress:a.cancellationProxyPct-b.cancellationProxyPct;break;case'rating':if(currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod)){if(a.selfReportedRating===null&&b.selfReportedRating!==null)return 1;if(b.selfReportedRating===null&&a.selfReportedRating!==null)return -1;}d=liveMode?((currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod))?a.selfReportedRating-b.selfReportedRating:a.publicRating-b.publicRating):a.blendedRating-b.blendedRating;break;case'health':d=priorities[a.health]-priorities[b.health];break;}return d*sign||a.name.localeCompare(b.name);});
+  const [type,direction]=sortBy.split('-');
+  const values={
+   name:r=>r.name,
+   distance:r=>r.distance===999?null:liveNumber(r.distance),
+   eta:r=>Number.isFinite(r.etaLow)&&Number.isFinite(r.etaHigh)?(r.etaLow+r.etaHigh)/2:liveNumber(r.eta),
+   stress:r=>liveNumber(r.transitStress),
+   rating:r=>Number(r.genuineTotals?.report_rating_count)>0?liveNumber(r.genuineTotals.auditor_avg_rating):null,
+   delivery:r=>Number(r.genuineTotals?.completed_delivery_count)>0?liveNumber(r.genuineTotals.observed_delivery_mins):null,
+   reports:r=>Number(r.genuineTotals?.auditor_report_count||0)
+  };
+  const value=values[type];
+  arr.sort((a,b)=>{
+   const x=value(a),y=value(b);
+   const tie=a.name.localeCompare(b.name)||Number(a.id)-Number(b.id);
+   if(x===null||y===null)return (x===null)-(y===null)||tie;
+   const result=typeof x==='string'?x.localeCompare(y):x-y;
+   return result*(direction==='asc'?1:-1)||tie;
+  });
  }
  return arr;
 }
@@ -1199,7 +1213,6 @@ function directoryPageRows(rows){
  const total=rows.length, pages=Math.ceil(total/DIRECTORY_PAGE_SIZE);
  directoryPage=Math.max(1,Math.min(directoryPage,pages));
  const start=(directoryPage-1)*DIRECTORY_PAGE_SIZE,end=Math.min(start+DIRECTORY_PAGE_SIZE,total);
- $('restaurant-count').textContent=`· ${total} matching ${total===1?'result':'results'}`;
  $('bp-directory-pagination').hidden=false;
  $('bp-directory-prev').disabled=directoryPage===1;
  $('bp-directory-next').disabled=directoryPage>=pages;
@@ -1214,16 +1227,21 @@ function changeDirectoryPage(delta){
 }
 function renderDirectory(keepPage=false){
  if(keepPage!==true)directoryPage=1;
- const arr=directoryPageRows(directoryRows()),query=$('directory-search').value.trim();
- const zone=$('filter-zone').value,health=$('filter-health').value,cuisine=$('filter-cuisine').value;
- const labels={'default':liveMode?'Default order':'Original sample order','distance-asc':'Distance · closest first','distance-desc':'Distance · farthest first','name-asc':'Name · A to Z','name-desc':'Name · Z to A','price-asc':'Price · low to high','price-desc':'Price · high to low','risk-desc':'Risk · highest first','risk-asc':'Risk · lowest first','rating-desc':'Rating · highest first','rating-asc':'Rating · lowest first','health-desc':'Health · critical first','health-asc':'Health · normal first'};
- const filterCount=[zone,health,cuisine,$('filter-street').value].filter(x=>x!=='ALL').length;
- $('filter-summary').textContent=`${currentModel?currentModel.snapshot_date_manila:dateRangeLabel()} · ${currentModel?labels[sortBy].replace('Risk','Transit stress'):labels[sortBy]}${filterCount?` · ${filterCount} active ${filterCount===1?'filter':'filters'}`:''}${query?' · Search applied':''}`;
+ const population=enriched(),matching=directoryRows(population),arr=directoryPageRows(matching);
+ const query=$('directory-search').value.trim();
+ const [type,direction]=sortBy.split('-');
+ const order=DIRECTORY_SORT_OPTIONS.find(o=>o[0]===type);
+ const orderLabel=order?`${order[1]} · ${order[direction==='asc'?2:3]}`:'Default order';
+ const filterCount=['filter-zone','filter-cuisine','filter-street'].filter(id=>$(id).value!=='ALL').length;
+ const countLabel=`${filterCount||query?matching.length+' of ':''}${population.length} ${population.length===1?'restaurant':'restaurants'}`;
+ const heading=$('restaurant-count');
+ if(heading.textContent!==countLabel)heading.textContent=countLabel;
+ $('filter-summary').textContent=`${currentModel?currentModel.snapshot_date_manila:dateRangeLabel()} · ${orderLabel}${filterCount?` · ${filterCount} active ${filterCount===1?'filter':'filters'}`:''}${query?' · Search applied':''}`;
  if(liveMode){
   $('directory-rows').innerHTML=arr.length?arr.map(liveDirectoryRow).join(''):'<tr><td colspan="8" class="empty">No restaurants match your search or filters.</td></tr>';
   return;
  }
- $('directory-rows').innerHTML=arr.length?arr.map(r=>`<tr><td><button type="button" class="bp-restaurant-detail-link" data-restaurant-detail="${r.id}" aria-label="View performance details for ${html(r.name)}">${html(r.name)} <span aria-hidden="true">↗</span></button><div class="cell-sub">${html(r.cuisine)}</div></td><td>${html(r.zone.replace('UST - ',''))}<div class="cell-sub">${html(r.nearestGate.split(' (')[0])}</div></td><td>${r.distance.toFixed(2)} km</td><td>₱${r.avgPricePhp.toFixed(0)} avg<div class="cell-sub">${html(r.priceRange)}</div></td><td>${r.eta.toFixed(1)} min<div class="cell-sub">${r.verified===null?'Modeled estimate':`Auditor ${r.verified} min`}</div></td><td>${r.cancellationProxyPct.toFixed(1)}%</td><td>${r.blendedRating.toFixed(2)} ★</td><td>${badge(r.health)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">No restaurants match this date range, search, or filters.</td></tr>';
+ $('directory-rows').innerHTML=arr.length?arr.map(r=>`<tr><td><button type="button" class="bp-restaurant-detail-link" data-restaurant-detail="${r.id}" aria-label="View performance details for ${html(r.name)}">${html(r.name)} <span aria-hidden="true">↗</span></button><div class="cell-sub">${html(r.cuisine)}</div></td><td>${html(r.zone.replace('UST - ',''))}<div class="cell-sub">${html(r.nearestGate.split(' (')[0])}</div></td><td>${r.distance.toFixed(2)} km</td><td>₱${r.avgPricePhp.toFixed(0)} avg<div class="cell-sub">${html(r.priceRange)}</div></td><td>${r.eta.toFixed(1)} min<div class="cell-sub">${r.verified===null?'Modeled estimate':`Auditor ${r.verified} min`}</div></td><td>${r.cancellationProxyPct.toFixed(1)}%</td><td>${r.blendedRating.toFixed(2)} ★</td><td>${r.reportCount||0}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">No restaurants match this date range, search, or filters.</td></tr>';
 }
 function liveDirectoryRow(r){
  if(currentModel||(typeof studentPeriod!=='undefined'&&studentPeriod))return `<tr class="bp-current-directory-row">
@@ -1246,7 +1264,7 @@ function liveDirectoryRow(r){
   <td>${outcome}${Number.isFinite(r.eta)?`<div class="cell-sub">${syntheticDemo?'Synthetic estimate':'Modeled estimate'}</div>`:''}</td>
   <td>${Number.isFinite(r.cancellationProxyPct)?numberText(r.cancellationProxyPct)+(syntheticDemo?'%':' points'):'Not available'}</td>
   <td>${rating}<div class="cell-sub">${syntheticDemo?'Synthetic rating':html(warehouseRatingLabel(r.warehouseRatingDays))}</div>${!syntheticDemo&&Number.isFinite(r.selfReportedRating)&&r.reportRatingCount>0?`<div class="cell-sub">Self-reported: ${numberText(r.selfReportedRating,2)} ★ · ${html(sampleLabel(r.reportRatingCount,'rating'))}</div>`:''}</td>
-  <td>${r.health==='UNKNOWN'?'<span class="pill unknown">Unknown</span>':badge(r.health)}</td>
+  <td>${r.reportCount||0}</td>
  </tr>`;
 }
 function zoneTag(row){
@@ -1272,7 +1290,7 @@ function drawChart(id,config,theme){
   plugins:{...otherPlugins,legend:{...legend,labels:{...legend.labels,color:theme.ink}}},
   scales:Object.fromEntries(Object.entries(axes).map(([id,axis])=>[id,{
    ...axis,ticks:{...axis.ticks,color:theme.ink},title:{...axis.title,color:theme.ink},
-   grid:{...axis.grid,color:theme.grid},border:{...axis.border,color:theme.axis}
+   grid:{...axis.grid,color:axis.grid?.color||theme.grid},border:{...axis.border,color:theme.axis}
   }]))
  }}));
 }
@@ -1298,7 +1316,7 @@ function renderStudentCharts(){
   const values=group.map(row=>row[key]).filter(Number.isFinite);
   return values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
  };
- const series=(label,data,color)=>({label,data,backgroundColor:color,borderRadius:4});
+ const series=(label,data,color)=>({label,data,backgroundColor:color,borderRadius:4,maxBarThickness:32});
  const panel=(id,title,description,{labels=[],datasets=[],type='bar',scales=null,
   extra={},plugins=[],legend=[],fallback=null,empty='No data for these dates.'}={})=>{
   const canvas=$(id),parent=canvas.closest('.chart-panel');
@@ -1306,6 +1324,7 @@ function renderStudentCharts(){
   parent.querySelector('h3').textContent=title;
   parent.querySelector('p').textContent=description;
   parent.querySelector('.bp-chart-legend')?.remove();
+  parent.querySelector('.bp-zone-tooltip')?.remove();
   const usable=value=>Array.isArray(value)?value.every(Number.isFinite):Number.isFinite(value);
   const hasData=labels.length&&datasets.some(data=>data.data.some(usable));
   if(!hasData||typeof Chart==='undefined'){
@@ -1322,6 +1341,29 @@ function renderStudentCharts(){
       return `${dataset.label}: ${text}`;
      }
     }};
+   if(id==='student-zone-count-chart'){
+    tooltip.enabled=false;
+    tooltip.external=({chart,tooltip:tip})=>{
+     let box=parent.querySelector('.bp-zone-tooltip');
+     if(!box){
+      box=document.createElement('div');box.className='bp-zone-tooltip';
+      box.append(document.createElement('strong'),document.createElement('span'));parent.append(box);
+     }
+     box.hidden=!tip.opacity;
+     if(box.hidden)return;
+     const i=tip.dataPoints[0].dataIndex,arc=chart.getDatasetMeta(0).data[i];
+     box.firstChild.textContent=labels[i];
+     const count=datasets[0].data[i];
+     box.lastChild.textContent=`${count} restaurants (${(100*count/rows.length).toFixed(1)}%)`;
+     const rect=chart.canvas.getBoundingClientRect(),angle=(arc.startAngle+arc.endAngle)/2;
+     const cx=rect.left+arc.x,cy=rect.top+arc.y;
+     const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+     const x=clamp(cx+Math.cos(angle)*arc.outerRadius-box.offsetWidth/2,8,innerWidth-box.offsetWidth-8);
+     const above=cy-arc.innerRadius*.65-box.offsetHeight-6,below=cy+arc.innerRadius*.65+6;
+     const y=Math.sin(angle)<0&&above>=8||below+box.offsetHeight>innerHeight-8?above:below;
+     box.style.left=x+'px';box.style.top=clamp(y,8,innerHeight-box.offsetHeight-8)+'px';
+    };
+   }
    drawChart(id,{type,plugins,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
      animation:false,indexAxis:'y',...extra,
      plugins:{legend:{display:false},tooltip},scales:scales||{x:{beginAtZero:true}}}},theme);
@@ -1342,13 +1384,13 @@ function renderStudentCharts(){
  panel('zone-chart','Estimated delivery time by zone',
   currentModel?'Each bar spans the faster and slower estimates.':'Earlier dates may show one estimate per zone.',
   {labels:zoneLabels,datasets:[series('Estimated minutes',eta,zoneColors)],empty:'No delivery estimates for these dates.',
-   scales:{x:{beginAtZero:true,title:{display:true,text:'Minutes'}}}});
+   scales:{x:{beginAtZero:true,grid:{color:theme.grid+'66'},title:{display:true,text:'Minutes'}},y:{grid:{display:false}}}});
  panel('student-stress-chart','Delivery travel difficulty by zone','See which areas need more estimated travel time.',
   {labels:zoneLabels,datasets:[series('Travel difficulty',bands.map(([,r])=>average(r,'transitStress')),zoneColors)],
-   scales:{x:{min:0,max:100,title:{display:true,text:'Score out of 100'}}},empty:'Travel difficulty is unavailable for these dates.'});
+   scales:{x:{min:0,max:100,grid:{color:theme.grid+'66'},title:{display:true,text:'Score out of 100'}},y:{grid:{display:false}}},empty:'Travel difficulty is unavailable for these dates.'});
  const total=rows.length,counts=bands.map(([,r])=>r.length);
  const legend=bands.map(([key,list],i)=>[key,`${zoneLabels[i]} · ${list.length} (${(list.length*100/total).toFixed(1)}%)`]);
- const center={id:'blueplate-zone-total',afterDraw(chart){
+ const center={id:'blueplate-zone-total',afterDatasetsDraw(chart){
   const arc=chart.getDatasetMeta(0).data[0];if(!arc)return;
   const ctx=chart.ctx;ctx.save();
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=theme.ink;
@@ -1362,20 +1404,44 @@ function renderStudentCharts(){
  const cuisines=by(row=>row.cuisine||'Unclassified').sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0]));
  const top=cuisines.slice(0,8).map(([name,list])=>[name,list.length]);
  if(cuisines.length>8)top.push(['Other cuisines',cuisines.slice(8).reduce((n,[,list])=>n+list.length,0)]);
+ const wrapCuisine=value=>String(value).match(/.{1,18}(?:\s|$)|\S+/g)?.map(word=>word.trim())||[value];
+ const cuisineHeight=top.reduce((height,[name])=>height+Math.max(32,wrapCuisine(name).length*17+12),40);
+ $('cuisine-chart').parentElement.style.setProperty('--cuisine-height',cuisineHeight+'px');
  panel('cuisine-chart','Restaurant types and cuisines','Explore the types of food listed near UST.',
   {labels:top.map(([name])=>name.replaceAll('_',' ').split(';').map(word=>word.trim().replace(/^./,letter=>letter.toUpperCase())).join(' · ')),datasets:[series('Restaurants',top.map(([,n])=>n),theme.teal)],
-   scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{ticks:{autoSkip:false,callback:function(value){
-    return this.getLabelForValue(value).match(/.{1,24}(?:\s|$)|\S{25,}/g)?.map(piece=>piece.trim())||this.getLabelForValue(value);
+   scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false},ticks:{font:{size:12,lineHeight:1.35,weight:'500'},autoSkip:false,callback:function(value){
+    return wrapCuisine(this.getLabelForValue(value));
    }}}}});
  renderStudentExperiences();
- const demand=bands.map(([,group])=>currentModel?group.reduce((n,row)=>n+row.orderCount,0):null);
  const orderFormat=new Intl.NumberFormat('en-PH');
- const wholeShares=currentModel?roundDemandShares(demand,currentModel.demand_scenarios.pool[demandScenario]):[];
- panel('trend-chart','Order demand simulation','Hypothetical daily orders are shared equally across restaurants. These are neither actual orders nor demand forecasts.',
-  {labels:['Assumed daily orders'],datasets:zoneLabels.map((label,i)=>series(label,[demand[i]],zoneColors[i])),
-   scales:{x:{stacked:true,beginAtZero:true,title:{display:true,text:'Hypothetical orders per day'}},y:{stacked:true}},
-   legend:currentModel?bands.map(([band],i)=>[band,`${zoneLabels[i]} · ${orderFormat.format(wholeShares[i])}`]):[],
+ const pools=currentModel?.demand_scenarios.pool;
+ const scenarioShares=Object.fromEntries(Object.entries(pools||{}).map(([scenario,pool])=>[
+  scenario,roundDemandShares(bands.map(([,group])=>group.reduce((sum,row)=>sum+row.demand[scenario],0)),pool)
+ ]));
+ const wholeShares=scenarioShares[demandScenario]||[];
+ const peak=Math.max(0,...Object.values(scenarioShares).flat());
+ const axisMax=Math.max(500,Math.ceil((peak*1.08)/500)*500);
+ const valuesAboveColumns={id:'blueplate-demand-values',afterDatasetsDraw(chart){
+  const ctx=chart.ctx;ctx.save();
+  ctx.fillStyle=theme.ink;ctx.font='600 12px system-ui';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+   if(Number.isFinite(wholeShares[i]))ctx.fillText(orderFormat.format(wholeShares[i]),bar.x,bar.y-5);
+  });
+  ctx.restore();
+ }};
+ panel('trend-chart','Order demand simulation','Hypothetical daily orders are shared equally across restaurants. The chart shows simulated volumes.',
+  {labels:zoneLabels,datasets:[series('Simulated orders per day',wholeShares,zoneColors)],
+   extra:{indexAxis:'x'},plugins:[valuesAboveColumns],
+   scales:{x:{grid:{display:false}},y:{min:0,max:axisMax,ticks:{stepSize:500,precision:0},
+    title:{display:true,text:'Simulated orders per day'}}},
+   fallback:currentModel?zoneLabels.map((label,i)=>`${label}: ${orderFormat.format(wholeShares[i])} simulated orders/day`):null,
    empty:'The order simulation is unavailable for these dates.'});
+ const demandChart=$('trend-chart');
+ if(wholeShares.length&&!demandChart.hidden){
+  const values=zoneLabels.map((label,i)=>label+': '+orderFormat.format(wholeShares[i])).join('; ');
+  demandChart.setAttribute('aria-label',`Order demand simulation. Simulated orders per day. ${values}.`);
+ }
 }
 // Use the largest remainders, with zone order breaking ties, for display only.
 function roundDemandShares(shares,pool){
@@ -1761,11 +1827,12 @@ function initRestaurantDetails(){
  dialog.innerHTML='<div class="bp-detail-content" id="bp-detail-content"></div>';
  document.body.append(dialog);
  dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
- dialog.addEventListener('close',()=>{dialog.dataset.restaurantId='';});
+ let opener;
+ dialog.addEventListener('close',()=>{dialog.dataset.restaurantId='';opener?.focus();});
  $('directory-rows').addEventListener('click',e=>{
   const button=e.target.closest('[data-restaurant-detail]');if(!button)return;
   const id=Number(button.dataset.restaurantDetail);
-  dialog.dataset.restaurantId=String(id);renderRestaurantDetail(id);dialog.showModal();
+  opener=button;dialog.dataset.restaurantId=String(id);renderRestaurantDetail(id);dialog.showModal();
  });
  dialog.addEventListener('click',e=>{if(e.target.closest('[data-close-detail]'))dialog.close();});
 }
@@ -1777,46 +1844,62 @@ function smallSparkline(data){
  return `<svg class="bp-trend-sparkline" role="img" aria-label="Modeled daily delivery time trend, ${data.length} observations" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 function renderRestaurantDetail(id){
- if(studentPeriod){
+ if(studentPeriod||currentModel){
   const row=enriched().find(r=>r.id===id);if(!row)return;
-  const source=publicVenueLabel(row)||'Historical restaurant listing';
   const classification=row.cuisineClassification;
-  const eta=currentModel?`${numberText(row.etaLow)}–${numberText(row.etaHigh)} min`:Number.isFinite(row.eta)?numberText(row.eta)+' min':'Not available';
-  const estimates=[['Estimated delivery',eta,currentModel?'Estimated range':'Estimate for the selected dates']];
-  if(currentModel)estimates.push(['Travel difficulty',numberText(row.transitStress)+' / 100','Share of the assumed travel-time budget'],
-   ['Simulated orders per day',numberText(row.orderCount,2),'Equal share of the selected scenario']);
-  const reports=reportMetrics(row.genuineTotals||{}).map(([label,value,sub])=>[label.replace('Accepted reports','Student reports').replace('Self-reported','Student-reported'),value,sub]);
-  const markup=items=>items.map(([label,value,sub])=>`<div><span>${html(label)}</span><strong>${html(value)}</strong><small>${html(sub)}</small></div>`).join('');
-  $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><h2 id="bp-dialog-title">${html(row.name)}</h2><p>${html(row.streetAddress||'Address unavailable')} · ${zoneTag(row)} · ${html(row.zone)}</p>
-  <p>Cuisine or specialty: ${html(row.cuisine||'Not specified')}</p>
-  ${classification?`<p>Establishment type: ${html(classification.establishment_type)}</p>
-  ${classification.cuisines.length>1?`<p>Cuisines: ${html(classification.cuisines.join(', '))}</p>`:''}
-  ${classification.specialties.length&&classification.specialties.join(', ')!==row.cuisine?`<p>Food specialties: ${html(classification.specialties.join(', '))}</p>`:''}
-  ${classification.source!=='Not specified'?`<p>Classification source: ${html(classification.source)}</p>`:''}`:''}
-  <p>Information source: ${html(source)}</p><p>Opening status: ${html(row.verificationProvenance==='USER_CONFIRMED'||row.verificationProvenance==='INDEPENDENTLY_VERIFIED'?'Confirmed open':'Not confirmed in this view')}</p>
-  </div><button type="button" class="bp-detail-close" data-close-detail aria-label="Close restaurant details">×</button></div>
-  <h3>Delivery estimates</h3><div class="bp-detail-metrics">${markup(estimates)}</div><h3>Student feedback</h3><div class="bp-detail-metrics">${markup(reports)}</div>
-  <p class="bp-feature-description">Student reports describe individual experiences.</p>`;
-  $('bp-detail-dialog').setAttribute('aria-labelledby','bp-dialog-title');
-  return;
- }
- if(currentModel){
-  const row=enriched().find(r=>r.id===id);if(!row)return;
-  const reports=reportMetrics(row.genuineTotals);
-  const items=[
-   ['Modeled ETA range',`${numberText(row.etaLow)}–${numberText(row.etaHigh)} min`,'Scenario endpoints'],
-   ['Transit Stress Index',numberText(row.transitStress)+' points','Modeled travel time only'],
-   ['Hypothetical orders per day',numberText(row.orderCount,2),'Equal scenario allocation'],
-   ...reports,
+  const confirmed=['USER_CONFIRMED','INDEPENDENTLY_VERIFIED'].includes(row.verificationProvenance);
+  const status=row.operatingStatus?.includes('CLOSED')?'Closed':confirmed?'Confirmed open':'Not confirmed';
+  const eta=Number.isFinite(row.etaLow)&&Number.isFinite(row.etaHigh)
+   ?`${numberText(row.etaLow)}–${numberText(row.etaHigh)} min`
+   :Number.isFinite(row.eta)?numberText(row.eta)+' min':'Not available';
+  const estimates=[
+   ['Estimated delivery time',eta,'Modeled for the selected period'],
+   ['Travel difficulty',Number.isFinite(row.transitStress)?numberText(row.transitStress)+' / 100':'Not available','Share of assumed travel-time budget'],
+   ['Simulated demand',Number.isFinite(row.orderCount)?'≈ '+numberText(Math.round(row.orderCount),0)+' orders/day':'Not available','Hypothetical scenario; no observed orders']
   ];
-  $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><h2 id="bp-dialog-title">${html(row.name)}</h2><p>${html(row.streetAddress||'Address unavailable')} · ${html(row.zone)} · ${html(publicVenueLabel(row))}</p></div><button type="button" class="bp-detail-close" data-close-detail aria-label="Close restaurant details">×</button></div>
-   <div class="bp-detail-metrics">${items.map(([label,value,sub])=>`<div><span>${html(label)}</span><strong>${html(value)}</strong><small>${html(sub)}</small></div>`).join('')}</div><p class="bp-feature-description">${html(reportMethodology)}</p>`;
+  const totals=row.genuineTotals||{};
+  const metrics=reportMetrics(totals);
+  const reports=[
+   ['Student reports',metrics[0][1],'Eligible reports in this period'],
+   ['Student rating',...metrics[1].slice(1)],
+   ['Reported delivery time',...metrics[2].slice(1)],
+   ['Reported cancellations',...metrics[3].slice(1)]
+  ];
+  if(!Number(totals.known_outcome_count))reports[3][2]='No known outcomes in this period';
+  const markup=items=>items.map(([label,value,sub])=>`<div><span>${html(label)}</span><strong>${html(value)}</strong><small>${html(sub)}</small></div>`).join('');
+  const zoneDefinitions={A:'Zone A — Immediate Campus Area (0–500 m)',B:'Zone B — Surrounding University Area (over 500–1,000 m)',C:'Zone C — Extended Delivery Area (over 1,000–1,500 m)'};
+  const entity=row.externalPlaceId?.match(/^osm_(node|way|relation)_(\d+)$/);
+  const source=entity?`<a href="https://www.openstreetmap.org/${entity[1]}/${entity[2]}" target="_blank" rel="noopener noreferrer">OpenStreetMap feature</a>`:'Warehouse restaurant record';
+  $('bp-detail-content').innerHTML=`<div class="bp-directory-detail">
+  <div class="bp-detail-head"><h2 id="bp-dialog-title">${html(row.name)}</h2><button type="button" class="bp-detail-close" data-close-detail aria-label="Close restaurant details"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <p class="bp-detail-address">${html(row.streetAddress||'Address unavailable')}</p>
+  <div class="bp-detail-identity">${zoneTag(row)}
+   <span><b>Type</b> ${html(classification?.establishment_type||'Not specified')}</span>
+   <span><b>Cuisine or specialty</b> ${html(row.cuisine||'Not specified')}</span>
+   <span><b>Operating status</b> ${html(status)}</span>
+  </div>
+  <section class="bp-directory-detail-section"><h3>Delivery estimates</h3><div class="bp-detail-metrics bp-detail-estimates">${markup(estimates)}</div></section>
+  <section class="bp-directory-detail-section"><h3>Student feedback</h3>
+   ${Number(totals.auditor_report_count)>0?`<div class="bp-detail-metrics">${markup(reports)}</div>`:
+     '<div class="bp-feedback-empty"><strong>No student reports yet</strong><p>Feedback will appear here once eligible delivery experiences are submitted.</p></div>'}
+  </section>
+  <details class="bp-directory-detail-section"><summary>Data sources and methodology</summary><dl>
+   <dt>Restaurant source</dt><dd>${source}</dd>
+   ${row.verificationProvenance?`<dt>Review provenance</dt><dd>${html(row.verificationProvenance.toLowerCase().replaceAll('_',' '))}${row.confirmedOn?' · '+html(row.confirmedOn):''}</dd>`:''}
+   ${classification?`<dt>Classification source</dt><dd>${html(classification.source)}${classification.evidence?' · '+html(classification.evidence):''}</dd>
+     <dt>Original cuisine tag</dt><dd>${html(classification.original_cuisine||'Not recorded')}</dd>
+     ${classification.cuisines?.length?`<dt>Cuisine categories</dt><dd>${html(classification.cuisines.join(', '))}</dd>`:''}
+     ${classification.specialties?.length?`<dt>Food specialties</dt><dd>${html(classification.specialties.join(', '))}</dd>`:''}`:''}
+   <dt>Geography</dt><dd>${html(zoneDefinitions[zoneBand(row)]||row.zone)}. Bands use straight-line distance from UST.</dd>
+   <dt>Estimates</dt><dd>${currentModel?'ETA uses a 1.35 route factor, 12–18 km/h rider speeds, 7–15 minutes to prepare and four minutes for handoff. Travel difficulty uses a 15-minute travel budget. Demand divides the selected hypothetical pool equally. Estimated delivery sorting uses the range midpoint.':'Earlier modeled estimates use the original method for the selected dates.'}</dd>
+   <dt>Feedback</dt><dd>${html(reportMethodology)}</dd>
+  </dl></details></div>`;
   $('bp-detail-dialog').setAttribute('aria-labelledby','bp-dialog-title');
   return;
  }
  if(liveMode && syntheticDemo){
   const r=enriched().find(x=>x.id===id);if(!r)return;
-  $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><div class="section-tag">SYNTHETIC DEMO · REAL OSM RESTAURANT IDENTITY</div><h2 id="bp-dialog-title">${html(r.name)}</h2><p>${html(r.branch)} · ${html(r.zone)}</p></div><button class="bp-detail-close" data-close-detail aria-label="Close details">×</button></div><div class="bp-detail-metrics"><div><span>Synthetic ETA</span><strong>${r.eta.toFixed(1)} min</strong></div><div><span>Synthetic risk</span><strong>${r.cancellationProxyPct.toFixed(1)}%</strong></div><div><span>Synthetic rating</span><strong>${r.blendedRating.toFixed(2)}/5</strong></div><div><span>Synthetic health</span>${badge(r.health)}</div></div><p class="bp-feature-description">Illustrative outputs only. No observed order, actual rating, or verified restaurant performance is implied.</p>`;
+  $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><div class="section-tag">SYNTHETIC DEMO · REAL OSM RESTAURANT IDENTITY</div><h2 id="bp-dialog-title">${html(r.name)}</h2><p>${html(r.branch)} · ${html(r.zone)}</p></div><button class="bp-detail-close" data-close-detail aria-label="Close details"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="bp-detail-metrics"><div><span>Synthetic ETA</span><strong>${r.eta.toFixed(1)} min</strong></div><div><span>Synthetic risk</span><strong>${r.cancellationProxyPct.toFixed(1)}%</strong></div><div><span>Synthetic rating</span><strong>${r.blendedRating.toFixed(2)}/5</strong></div><div><span>Synthetic health</span>${badge(r.health)}</div></div><p class="bp-feature-description">Illustrative outputs only. No observed order, actual rating, or verified restaurant performance is implied.</p>`;
   $('bp-detail-dialog').setAttribute('aria-labelledby','bp-dialog-title');return;
  }
  if(liveMode){renderLiveRestaurantDetail(id);return;}
@@ -1824,7 +1907,7 @@ function renderRestaurantDetail(id){
  const all=enriched(),avg=key=>all.reduce((a,x)=>a+x[key],0)/all.length,history=historyFor(r.id);
  const guest=visibleGuestReports().filter(x=>Number(x.restaurantId)===r.id);
  const diff=r.eta-avg('eta'),sign=diff>0?'+':'';
- $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><div class="section-tag">Restaurant performance · illustrative</div><h2 id="bp-dialog-title">${html(r.name)}</h2><p>${html(r.branch)} · ${html(r.cuisine)} · ${html(r.zone.replace('UST - ',''))}</p></div><button type="button" class="bp-detail-close" data-close-detail aria-label="Close restaurant details">×</button></div><div class="bp-detail-meta"><span>📍 ${html(r.nearestGate)}</span><span>Typical price ${html(r.priceRange)}</span><span>${html(dateRangeLabel())}</span></div><div class="bp-detail-metrics"><div><span>Delivery time</span><strong>${r.eta.toFixed(1)} min</strong><small>Modeled average</small></div><div><span>Risk index</span><strong>${r.cancellationProxyPct.toFixed(1)}%</strong><small>Modeled, not actual cancellations</small></div><div><span>Rating</span><strong>${r.blendedRating.toFixed(2)} ★</strong><small>Modeled / local reports</small></div><div><span>Health</span>${badge(r.health)}<small>Period threshold</small></div></div><div class="bp-detail-comparison"><strong>Compared with UST campus average</strong><p>Modeled delivery is <b>${Math.abs(diff).toFixed(1)} min ${diff>0?'slower':diff<0?'faster':'equal'}</b> (${sign}${diff.toFixed(1)} min difference). Campus mean: ${avg('eta').toFixed(1)} min.</p></div><div class="bp-detail-trend"><div class="bp-feature-title">Delivery trend</div><p class="bp-feature-description">Modeled daily ETA, not a live delivery feed</p>${smallSparkline(history.map(x=>x.eta))}</div><div class="bp-detail-foot"><div><strong>${history.reduce((a,x)=>a+x.orders,0).toLocaleString()}</strong><span>Illustrative orders in period</span></div><div><strong>${guest.length}</strong><span>Browser auditor reports in period</span></div></div>${guest.length?`<div class="bp-detail-report-list"><strong>Recent browser reports</strong>${guest.slice(0,3).map(x=>`<p>${html(formatDateTime(x.createdAt))} · ${x.cancelled?'Cancelled':`${Number(x.minutes)} min delivered`} · ${Number(x.rating)}/5 ★</p>`).join('')}</div>`:'<p class="bp-feature-description">No browser-submitted reports for this restaurant in the selected period.</p>'}`;
+ $('bp-detail-content').innerHTML=`<div class="bp-detail-head"><div><div class="section-tag">Restaurant performance · illustrative</div><h2 id="bp-dialog-title">${html(r.name)}</h2><p>${html(r.branch)} · ${html(r.cuisine)} · ${html(r.zone.replace('UST - ',''))}</p></div><button type="button" class="bp-detail-close" data-close-detail aria-label="Close restaurant details"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="bp-detail-meta"><span>📍 ${html(r.nearestGate)}</span><span>Typical price ${html(r.priceRange)}</span><span>${html(dateRangeLabel())}</span></div><div class="bp-detail-metrics"><div><span>Delivery time</span><strong>${r.eta.toFixed(1)} min</strong><small>Modeled average</small></div><div><span>Risk index</span><strong>${r.cancellationProxyPct.toFixed(1)}%</strong><small>Modeled, not actual cancellations</small></div><div><span>Rating</span><strong>${r.blendedRating.toFixed(2)} ★</strong><small>Modeled / local reports</small></div><div><span>Health</span>${badge(r.health)}<small>Period threshold</small></div></div><div class="bp-detail-comparison"><strong>Compared with UST campus average</strong><p>Modeled delivery is <b>${Math.abs(diff).toFixed(1)} min ${diff>0?'slower':diff<0?'faster':'equal'}</b> (${sign}${diff.toFixed(1)} min difference). Campus mean: ${avg('eta').toFixed(1)} min.</p></div><div class="bp-detail-trend"><div class="bp-feature-title">Delivery trend</div><p class="bp-feature-description">Modeled daily ETA, not a live delivery feed</p>${smallSparkline(history.map(x=>x.eta))}</div><div class="bp-detail-foot"><div><strong>${history.reduce((a,x)=>a+x.orders,0).toLocaleString()}</strong><span>Illustrative orders in period</span></div><div><strong>${guest.length}</strong><span>Browser auditor reports in period</span></div></div>${guest.length?`<div class="bp-detail-report-list"><strong>Recent browser reports</strong>${guest.slice(0,3).map(x=>`<p>${html(formatDateTime(x.createdAt))} · ${x.cancelled?'Cancelled':`${Number(x.minutes)} min delivered`} · ${Number(x.rating)}/5 ★</p>`).join('')}</div>`:'<p class="bp-feature-description">No browser-submitted reports for this restaurant in the selected period.</p>'}`;
  const title=$('bp-dialog-title');if(title){$('bp-detail-dialog').setAttribute('aria-labelledby',title.id);}
 }
 
@@ -1847,7 +1930,7 @@ async function renderLiveRestaurantDetail(id){
    <div class="bp-detail-head"><div><div class="section-tag">Restaurant performance</div>
     <h2 id="bp-dialog-title">${html(d.restaurant_name)}</h2>
     <p>${html(d.branch_label||(hasAddress?address:'Address not available'))} · ${html(d.cuisine_name||'Unclassified')} · ${html(zone)}</p></div>
-    <button class="bp-detail-close" type="button" data-close-detail aria-label="Close details">×</button></div>
+    <button class="bp-detail-close" type="button" data-close-detail aria-label="Close details"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
    <h3 class="bp-feature-title">Warehouse estimates</h3>
    <div class="bp-detail-metrics">
     <div><span>Modeled delivery</span><strong>${html(v(d.proxy_delivery_mins,' min'))}</strong><small>Estimated delivery time</small></div>
@@ -1914,12 +1997,40 @@ function showSubmissionConfirmation(report,restaurant,stored){
  const liveReceipt=liveMode&&!syntheticDemo;
  const title=liveReceipt?(report.status==='replayed'?'Report already saved':'Report saved'):'Practice report added';
  const details=liveReceipt?
-  `<p class="bp-success-sub">Report reference <strong>#${html(report.user_review_id)}</strong></p>${report.unlisted_restaurant?'<p>Your restaurant details will be reviewed separately.</p>':''}`:
+  `<p class="bp-success-sub bp-receipt-thanks">Thank you for sharing your delivery experience.</p>
+   <div class="bp-receipt-reference">
+    <label for="bp-report-reference">Report reference</label>
+    <input id="bp-report-reference" type="text" readonly value="${html(report.user_review_id)}" size="${String(report.user_review_id).length}">
+    <button type="button" id="bp-copy-reference" class="btn secondary">
+     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+     Copy
+    </button>
+   </div>
+   <p class="bp-receipt-feedback" id="bp-receipt-feedback" role="status"></p>
+   <p class="bp-success-sub bp-receipt-keep">Keep your reference number for any concerns regarding your submission.</p>
+   ${report.unlisted_restaurant?'<p>Your restaurant details will be reviewed separately.</p>':''}`:
   `<p class="bp-success-sub">${stored?'This practice report is saved in this browser.':'Browser storage was unavailable. This practice report is available for this session.'}</p>
    <dl><div><dt>Restaurant</dt><dd>${html(restaurant.name)}</dd></div><div><dt>Outcome</dt><dd class="${report.cancelled?'bp-result-cancelled':'bp-result-delivered'}">${report.cancelled?'Cancelled':'Delivered'}</dd></div><div><dt>Delivery time</dt><dd>${report.cancelled?'Not applicable':Number(report.minutes)+' min'}</dd></div><div><dt>Rating</dt><dd>${Number(report.rating)}/5 ★</dd></div><div><dt>Browser time</dt><dd>${html(formatDateTime(report.createdAt))}</dd></div></dl>`;
  card.innerHTML=`<div class="bp-success-icon" aria-hidden="true">✓</div><h3 tabindex="-1" id="bp-success-heading">${title}</h3>${details}
   <button type="button" class="submit-btn" id="bp-submit-another">Submit another report</button>
   <a class="bp-receipt-link" href="#recent">View recent student reports</a>`;
+ if(liveReceipt){
+  const reference=$('bp-report-reference'),feedback=$('bp-receipt-feedback');
+  let clearFeedback;
+  $('bp-copy-reference').onclick=async()=>{
+   clearTimeout(clearFeedback);
+   feedback.textContent='';
+   try{
+    await navigator.clipboard.writeText(reference.value);
+    feedback.textContent='Copied';
+    clearFeedback=setTimeout(()=>{feedback.textContent='';},2200);
+   }catch{
+    reference.focus({preventScroll:true});
+    reference.select();
+    feedback.textContent='Reference selected. Copy it using your device.';
+   }
+  };
+ }
  $('audit-form').classList.add('hidden');card.classList.remove('hidden');
  $('bp-submit-another').onclick=()=>{card.classList.add('hidden');$('audit-form').classList.remove('hidden');$('audit-restaurant')._bpFocus?.();$('report-form-section').scrollIntoView({behavior:'smooth',block:'start'});};
  $('bp-success-heading').focus({preventScroll:true});$('report-form-section').scrollIntoView({behavior:'smooth',block:'start'});
@@ -2030,19 +2141,10 @@ window.BluePlateApp={
   if(student)document.querySelector('.sidebar-caption').textContent='Delivery estimates and feedback from UST students.';
   $('bp-street-filter').hidden=!model;
   if(model)$('bp-latest-period')?.classList.remove('hidden');
-  const health=$('filter-health');
-  const healthControls=[document.querySelector('label[for="filter-health"]'),health,health.nextElementSibling];
-  for(const control of healthControls.slice(0,2).filter(Boolean))control.hidden=Boolean(model||student);
-  if(healthControls[2]?.classList.contains('bp-compact-select'))healthControls[2].hidden=Boolean(model||student);
-  if(model||student)health.value='ALL';
   if(previousModel!==Boolean(model))$('sort-popover').dispatchEvent(new Event('bp-reset-sort'));
   const headings=student?['Restaurant','Zone and address','Distance','Estimated delivery','Travel difficulty','Simulated orders/day','Student rating','Student reports']:model?['Restaurant','Distance band & address','Distance','Scenario ETA','Transit stress','Hypothetical demand/day','Guest rating','Guest reports']
-   :['Restaurant','Zone & gate','Distance','Modeled menu price','Delivery ETA','Risk index','Rating','Health'];
+   :['Restaurant','Zone & gate','Distance','Modeled menu price','Delivery ETA','Risk index','Rating','Student reports'];
   document.querySelectorAll('#restaurants thead th').forEach((th,i)=>{th.textContent=headings[i];});
-  for(const button of $('sort-popover').querySelectorAll('[data-sort-key]')){
-   button.hidden=(Boolean(model||student)&&['price','health'].includes(button.dataset.sortKey))||(Boolean(student&&!model)&&button.dataset.sortKey==='risk');
-   if(button.dataset.sortKey==='risk')button.querySelector('.sort-choice-name').textContent=student?'Travel difficulty':model?'Transit stress':'Risk';
-  }
   const updateOptions=(id,values,all)=>{
    const control=$(id),old=control.value;
    control.replaceChildren(new Option(all,'ALL'),...values.map(v=>new Option(v,v)));
