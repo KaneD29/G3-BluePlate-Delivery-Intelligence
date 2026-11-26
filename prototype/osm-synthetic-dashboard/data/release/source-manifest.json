@@ -1,0 +1,16 @@
+{
+  "cohort_sha256": "2481603b8a367df6be26a18f9d0519624e18a4e864bf6edf25f1c535674a8f75",
+  "original_model_sha256": "74918e3d2aa64aaa1ea344af5c94045f8472ec5784b2a78a2877fa49d06a5c5b",
+  "published_seed_model_sha256": "c83bd10d1ff2035dd018eec9aa4eec8f5aaa4eb8c752a47222b170f970645310",
+  "model_metadata_change": "Removed two live guest count fields from audit JSON. Exact CSV and modeled rows unchanged.",
+  "backup_metadata": "Private backup digests replaced by all-zero marker.",
+  "osm_attribution": "© OpenStreetMap contributors, ODbL 1.0",
+  "files": {
+    "current-model.json": "c83bd10d1ff2035dd018eec9aa4eec8f5aaa4eb8c752a47222b170f970645310",
+    "current-model.csv": "0ac9a6fdec053ffb0ec74e9f1be41e717a5d0f09e1298c220b8bf3406009ef63",
+    "warehouse-seed.json": "d8a1d67eeaee23899cfde7ed2ea29fd17e777bdb63104cca3b945300b9dc7b33",
+    "review-decisions.json": "7e518f4b45d1d7c9b2243e8b5aea8a1bc35716ac26dacdced7010d787e8b1d47",
+    "cuisine-classifications.json": "9407e20b981bddd8d9361f99d171120c9023593a965cea21f713672ab8b9d6d5"
+  },
+  "cuisine_metadata": "Versioned public reviewed labels; annotations do not alter the original audited snapshot or its CSV."
+}

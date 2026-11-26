@@ -1,0 +1,24 @@
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+__MACOSX/
+*.log
+
+# Local environments, release outputs, and backup material
+.venv*/
+dist/
+*.bak
+*.backup
+*.zip
+*.db
+*.sqlite*
+*.dump
+*.pem
+*.key
+*.p12

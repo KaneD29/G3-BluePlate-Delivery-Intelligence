@@ -1,0 +1,3555 @@
+{
+  "cohort_sha256": "2481603b8a367df6be26a18f9d0519624e18a4e864bf6edf25f1c535674a8f75",
+  "records": {
+    "osm_node_10079584692": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "donut;coffee_shop",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "donut;coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Bakery & desserts",
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_10104800518": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Markie and L.A. Pansit Cabagan",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_10148649443": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_1037130653": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_11031632263": {
+      "cuisines": [
+        "Asian"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "asian",
+      "label": "Asian",
+      "original_amenity": "fast_food",
+      "original_cuisine": "asian",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_11031632264": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_11164376558": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "G&G Fried Chicken",
+      "label": "Chicken",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_11243856430": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_11243856431": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "regional;pichi-pichi;donuts;noodles",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "regional;pichi-pichi;donuts;noodles",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Bakery & desserts",
+        "Noodles & ramen"
+      ]
+    },
+    "osm_node_1124655480": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11337250643": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": "barbecue",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_11337250644": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_11365581461": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_11365581463": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11365581466": {
+      "cuisines": [
+        "Japanese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "japanese",
+      "label": "Japanese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "japanese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_11365581467": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11365581468": {
+      "cuisines": [
+        "Chinese",
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;chicken;filipino;soup;seafood",
+      "label": "Multiple cuisines",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese;chicken;filipino;soup;seafood",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken",
+        "Seafood"
+      ]
+    },
+    "osm_node_11707034721": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "donut;coffee_shop",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "donut;coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Bakery & desserts",
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_11936997450": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "bubble_tea;coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "bubble_tea;coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_11992607156": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Group review proposed coffee_shop; reviewed name says Coffee.",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Group-reviewed metadata",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_11993666819": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11993667240": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11993675736": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994767733": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994801363": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994807247": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Benook Chicken & Bilao",
+      "label": "Chicken",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_11994867268": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994878282": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_11994891628": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Bulalo Ihaw Pares",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_11994909902": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Raina's Chinese Cooked Ham",
+      "label": "Ham & deli meats",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Ham & deli meats"
+      ]
+    },
+    "osm_node_11994912464": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Tuna Town",
+      "label": "Seafood",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Seafood"
+      ]
+    },
+    "osm_node_11994913106": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "O Fried Chicken",
+      "label": "Chicken",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_11994936419": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "fast_food",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_11994944747": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994946853": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994950447": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994954397": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Erlin's Tapsilog",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_11994955372": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994957231": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "ramen",
+      "label": "Noodles & ramen",
+      "original_amenity": "restaurant",
+      "original_cuisine": "ramen",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Noodles & ramen"
+      ]
+    },
+    "osm_node_11994971793": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_11994973893": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "bubble_tea",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "bubble_tea",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_11996202235": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_11997130526": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "grill",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": "grill",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_11997131882": {
+      "cuisines": [
+        "Mediterranean"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "mediterranean",
+      "label": "Mediterranean",
+      "original_amenity": "fast_food",
+      "original_cuisine": "mediterranean",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_11997152766": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Wings Manila",
+      "label": "Chicken",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_11997159037": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Silugan sa Maceda",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_12128146760": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_12128146761": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop;pastry",
+      "label": "Multiple food specialties",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop;pastry",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Bakery & desserts",
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_12224107354": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "restaurant",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_12313187501": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Coffee Project España",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_12414441291": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "24 Chicken Nicanor Reyes",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_12414468291": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "fast_food",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_12414482572": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_12414857139": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "TOMORO COFFEE - FEU Morayta",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_12414883918": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "juice",
+      "label": "Coffee & beverages",
+      "original_amenity": "fast_food",
+      "original_cuisine": "juice",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_12634770178": {
+      "cuisines": [
+        "Chinese",
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;filipino",
+      "label": "Multiple cuisines",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_12761613253": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_1278026430": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_1278908791": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_1278908807": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_1302736742": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_13124737767": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Kape Light",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13124737769": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "fast_food",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13124737770": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_13124737773": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Master Siomai",
+      "label": "Dim sum",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Dim sum"
+      ]
+    },
+    "osm_node_13124741912": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "fast_food",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13124741914": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_13125014705": {
+      "cuisines": [
+        "Vietnamese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "vietnamese;coffee_shop",
+      "label": "Vietnamese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "vietnamese;coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13125014707": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "fried_chicken",
+      "label": "Chicken",
+      "original_amenity": "restaurant",
+      "original_cuisine": "fried_chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_13125014712": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_13125014713": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Kalinaw Coffee Co.",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13125014721": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Tim Hortons - Centro Escolar University Branch",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Recognizable specialty chain",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13125014727": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_13125014734": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Warehouse Coffee",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13125014735": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_13125014737": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "bubble_tea",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "bubble_tea",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13125014738": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_13188508385": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "sandwich",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "sandwich",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_13188508386": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_1323393739": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_13277937020": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Kape 'Tol Cafe",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13278149564": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_13278149594": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_13283333754": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13283333755": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "tea",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "tea",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13283333756": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_13283363564": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_13283387549": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_13285512278": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Noodle King",
+      "label": "Noodles & ramen",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Noodles & ramen"
+      ]
+    },
+    "osm_node_13287964555": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_13306087701": {
+      "cuisines": [
+        "Persian"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Reviewed name explicitly says Persian Grill.",
+      "label": "Persian",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_13307838701": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_13451793230": {
+      "cuisines": [
+        "Chinese",
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;filipino",
+      "label": "Multiple cuisines",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_13603319140": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "restaurant",
+      "original_cuisine": "barbecue;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken",
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_13673789099": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_13673808402": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Oishiekun Chinese Bites",
+      "label": "Chinese",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_13673808403": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Chinese Pancake",
+      "label": "Chinese",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_13962054863": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_14079025534": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Boulangerie 22",
+      "label": "Bakery & desserts",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Bakery & desserts"
+      ]
+    },
+    "osm_node_1423129470": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_1423129484": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_14250468373": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_1427724358": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "restaurant",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_14286923245": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_14286923246": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_14286923247": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_14286923248": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_14286923251": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Order Lemon Tea",
+      "label": "Coffee & beverages",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_14286923252": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_14286923256": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Coffee Prince SportsBar",
+      "label": "Coffee & beverages",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_14312003312": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_14312053466": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "wings",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "wings",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_14312053467": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_14312053469": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_1501266703": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_1931786096": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "juice",
+      "label": "Coffee & beverages",
+      "original_amenity": "fast_food",
+      "original_cuisine": "juice",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_1931786098": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": "barbecue",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_1931786099": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "fast_food",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_1931786101": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_1974698441": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "K.G.W.D. Abel Ihaw-Ihaw",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_1974721540": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "restaurant",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_1974746500": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Reviewed name explicitly says Hong Kong Noodle & Dimsum.",
+      "label": "Chinese",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_1974756753": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_1974756754": {
+      "cuisines": [
+        "Chinese",
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;filipino",
+      "label": "Multiple cuisines",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_1974808785": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_2076842350": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_2076842351": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Dimsum Treats Mendiola",
+      "label": "Dim sum",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Dim sum"
+      ]
+    },
+    "osm_node_2838907508": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_316548327": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_330378076": {
+      "cuisines": [
+        "Chinese",
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;filipino",
+      "label": "Multiple cuisines",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_331699095": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_3500239223": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": "barbecue",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_3595642102": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_3595652229": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_3597990752": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_3598009759": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_3598034995": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_3598034997": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_3598047866": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_3598075656": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue;filipino",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "barbecue;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_3598085956": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "B.R.O Sizzling Sisig",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_3598097193": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_3600132440": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_3600132446": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_3600536422": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Churros House Jeicy Cafe",
+      "label": "Bakery & desserts",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Bakery & desserts"
+      ]
+    },
+    "osm_node_3601536662": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_3601536676": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "D'Cream Coffee & Tea",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_3601558396": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Beyond Coffee",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_3601558400": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Icyt Food Haus (Lutong Bahay)",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_3602041320": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_3602050293": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_3604427861": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "King Sisig",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_3604427865": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Bulalo World",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_3604428934": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Saved OSM tag: shop=bakery.",
+      "label": "Bakery & desserts",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "OSM establishment tags",
+      "specialties": [
+        "Bakery & desserts"
+      ]
+    },
+    "osm_node_3604428935": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "fast_food",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_3606282523": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "juice",
+      "label": "Coffee & beverages",
+      "original_amenity": "fast_food",
+      "original_cuisine": "juice",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_3951630068": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_3951630069": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "restaurant",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_4064535189": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_4111666632": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "fast_food",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_4120170199": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": "regional",
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_4170789472": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_4175638207": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": "barbecue",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_4175661193": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_4212325392": {
+      "cuisines": [
+        "American"
+      ],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "american",
+      "label": "American",
+      "original_amenity": "cafe",
+      "original_cuisine": "american",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_4214557589": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": "barbecue",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_4215115798": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "noodle;regional",
+      "label": "Noodles & ramen",
+      "original_amenity": "restaurant",
+      "original_cuisine": "noodle;regional",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Noodles & ramen"
+      ]
+    },
+    "osm_node_4217329389": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_4243016791": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_4265752903": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_4265807599": {
+      "cuisines": [],
+      "establishment_type": "Food court",
+      "establishment_type_source": "Reviewed establishment name",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_4270773889": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_4352534491": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Jacko's Burger Bar",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_4359599291": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": "regional",
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_4359599292": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Coffeepages UST P.Noval",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_4359599689": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_4376695990": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Dimsum Treats",
+      "label": "Dim sum",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Dim sum"
+      ]
+    },
+    "osm_node_4376696189": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Starbucks Pacific Grand Tower",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Recognizable specialty chain",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_4381858605": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Lan Zhou La Mian",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_4426099190": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Starbucks UST Carpark",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Recognizable specialty chain",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_4484498293": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_4661785793": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino;chicken;barbecue;fish;ice_cream",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "filipino;chicken;barbecue;fish;ice_cream",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Bakery & desserts",
+        "Chicken",
+        "Grill & barbecue",
+        "Seafood"
+      ]
+    },
+    "osm_node_4661787194": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_4661787195": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_4670256491": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "https://www.armynavy.com.ph/nutrition-facts",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Official chain specialty reference",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_4679292491": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_4848831923": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_4937772621": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Donna's Tapsilogan Atbp.",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_5071484224": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_5200193136": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_5224267022": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Chades Tapsilog",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_5246578273": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_5302199548": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_5302199549": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "restaurant",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_5313148321": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Juliet’s Lechon",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_5461096521": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_node_5484847721": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pizza",
+      "label": "Pizza & pasta",
+      "original_amenity": "fast_food",
+      "original_cuisine": "pizza",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_5519434021": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_5938692285": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_5963884485": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_5981239988": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "donut",
+      "label": "Bakery & desserts",
+      "original_amenity": "fast_food",
+      "original_cuisine": "donut",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Bakery & desserts"
+      ]
+    },
+    "osm_node_5981239996": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "ZUS Coffee - Pacific Skyloft",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_5982569389": {
+      "cuisines": [
+        "Filipino",
+        "Japanese"
+      ],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop;pasta;japanese;filipino",
+      "label": "Multiple cuisines",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop;pasta;japanese;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages",
+        "Pizza & pasta"
+      ]
+    },
+    "osm_node_5989117437": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Heavenly Grace Vegetarian Restaurant",
+      "label": "Vegetarian food",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Vegetarian food"
+      ]
+    },
+    "osm_node_6003412386": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_6015237086": {
+      "cuisines": [
+        "Italian",
+        "Vietnamese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "pasta;chicken;fish;vietnamese;italian",
+      "label": "Multiple cuisines",
+      "original_amenity": "restaurant",
+      "original_cuisine": "pasta;chicken;fish;vietnamese;italian",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken",
+        "Pizza & pasta",
+        "Seafood"
+      ]
+    },
+    "osm_node_6024191486": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_6055111893": {
+      "cuisines": [
+        "Asian"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "asian",
+      "label": "Asian",
+      "original_amenity": "fast_food",
+      "original_cuisine": "asian",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_6078167586": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino;asian",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "filipino;asian",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_6713914154": {
+      "cuisines": [
+        "Chinese",
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;filipino",
+      "label": "Multiple cuisines",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_6836867764": {
+      "cuisines": [
+        "Korean"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "korean",
+      "label": "Korean",
+      "original_amenity": "restaurant",
+      "original_cuisine": "korean",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_6836911298": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_7001443718": {
+      "cuisines": [
+        "Asian"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "asian;chicken;international",
+      "label": "Asian",
+      "original_amenity": "restaurant",
+      "original_cuisine": "asian;chicken;international",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_7010435443": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_7010435456": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_704380787": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "coffee_shop",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_7108395285": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7409667686": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Macao Imperial Tea",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_7561589907": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7561589929": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7561589957": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7561594688": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_7564638999": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_7564996109": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7564996115": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "noodle;ramen",
+      "label": "Noodles & ramen",
+      "original_amenity": "restaurant",
+      "original_cuisine": "noodle;ramen",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Noodles & ramen"
+      ]
+    },
+    "osm_node_7564996146": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "bubble_tea",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "bubble_tea",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_7564996147": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7564996150": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7566024990": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;seafood",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese;seafood",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Seafood"
+      ]
+    },
+    "osm_node_7568410676": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "donut;coffee_shop",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "donut;coffee_shop",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Bakery & desserts",
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_7575087420": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7576535974": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7576535984": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7590868017": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "noodles;filipino",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "noodles;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Noodles & ramen"
+      ]
+    },
+    "osm_node_7625888150": {
+      "cuisines": [
+        "Chinese",
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;filipino",
+      "label": "Multiple cuisines",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_7871744870": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "fast_food",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_8274195517": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_8528710017": {
+      "cuisines": [],
+      "establishment_type": "Café",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "bubble_tea",
+      "label": "Coffee & beverages",
+      "original_amenity": "cafe",
+      "original_cuisine": "bubble_tea",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Coffee & beverages"
+      ]
+    },
+    "osm_node_8732496177": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": "regional",
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_8749922987": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_node_8752439093": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_8763523821": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": "barbecue",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_node_8763523822": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_8951272267": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": "regional",
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_9283649388": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "The Original Pares Mami House - España Branch",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": []
+    },
+    "osm_node_9816221487": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_9842079217": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_node_9897674601": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_9905264856": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_9905264861": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_node_9905264862": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_node_9905323902": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "seafood;chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "seafood;chinese",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Seafood"
+      ]
+    },
+    "osm_way_136822630": {
+      "cuisines": [
+        "Chinese",
+        "Filipino"
+      ],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese;filipino",
+      "label": "Multiple cuisines",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chinese;filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_way_179225093": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "Excelente Cooked Ham",
+      "label": "Ham & deli meats",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Reviewed establishment name",
+      "specialties": [
+        "Ham & deli meats"
+      ]
+    },
+    "osm_way_179225213": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_way_179225215": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "barbecue",
+      "label": "Grill & barbecue",
+      "original_amenity": "fast_food",
+      "original_cuisine": "barbecue",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Grill & barbecue"
+      ]
+    },
+    "osm_way_179238074": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "filipino",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": "filipino",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_way_179245652": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_way_181382344": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_way_182992374": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": "regional",
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_way_182992391": {
+      "cuisines": [
+        "Filipino"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "https://maxschicken.com/",
+      "label": "Filipino",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Official chain specialty reference",
+      "specialties": []
+    },
+    "osm_way_184010680": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_way_184031603": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_way_184710370": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_way_186736590": {
+      "cuisines": [
+        "Asian"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "asian;pasta",
+      "label": "Asian",
+      "original_amenity": "restaurant",
+      "original_cuisine": "asian;pasta",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Pizza & pasta"
+      ]
+    },
+    "osm_way_187135514": {
+      "cuisines": [],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "restaurant",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_way_287921016": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_way_354250156": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": null,
+      "label": "Not specified",
+      "original_amenity": "fast_food",
+      "original_cuisine": null,
+      "source": "Not specified",
+      "specialties": []
+    },
+    "osm_way_354250169": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger",
+      "label": "Burgers & sandwiches",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches"
+      ]
+    },
+    "osm_way_409015270": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chicken",
+      "label": "Chicken",
+      "original_amenity": "fast_food",
+      "original_cuisine": "chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Chicken"
+      ]
+    },
+    "osm_way_417203976": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_way_766416316": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    },
+    "osm_way_806655772": {
+      "cuisines": [
+        "Chinese"
+      ],
+      "establishment_type": "Restaurant",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "chinese",
+      "label": "Chinese",
+      "original_amenity": "restaurant",
+      "original_cuisine": "chinese",
+      "source": "OSM cuisine tags",
+      "specialties": []
+    },
+    "osm_way_931115271": {
+      "cuisines": [],
+      "establishment_type": "Fast food",
+      "establishment_type_source": "OSM amenity",
+      "evidence": "burger;chicken",
+      "label": "Multiple food specialties",
+      "original_amenity": "fast_food",
+      "original_cuisine": "burger;chicken",
+      "source": "OSM cuisine tags",
+      "specialties": [
+        "Burgers & sandwiches",
+        "Chicken"
+      ]
+    }
+  },
+  "version": "reviewed-cuisines-v1",
+  "vocabulary": {
+    "combined_labels": [
+      "Multiple cuisines",
+      "Multiple food specialties",
+      "Not specified"
+    ],
+    "cuisines": [
+      "American",
+      "Asian",
+      "Chinese",
+      "Filipino",
+      "Italian",
+      "Japanese",
+      "Korean",
+      "Mediterranean",
+      "Persian",
+      "Vietnamese"
+    ],
+    "food_specialties": [
+      "Bakery & desserts",
+      "Burgers & sandwiches",
+      "Chicken",
+      "Coffee & beverages",
+      "Dim sum",
+      "Grill & barbecue",
+      "Ham & deli meats",
+      "Noodles & ramen",
+      "Pizza & pasta",
+      "Seafood",
+      "Vegetarian food"
+    ],
+    "types": [
+      "Café",
+      "Fast food",
+      "Food court",
+      "Restaurant"
+    ]
+  }
+}
