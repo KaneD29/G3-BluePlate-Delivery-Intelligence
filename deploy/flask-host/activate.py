@@ -177,11 +177,11 @@ def check_app(port, revision=None):
             "Dashboard did not serve HTML")
 
 
-def wait_app(port):
+def wait_app(port, revision=None):
     deadline = time.monotonic() + 30
     while True:
         try:
-            check_app(port)
+            check_app(port, revision)
             return
         except (ValueError, subprocess.SubprocessError):
             if time.monotonic() >= deadline:
@@ -256,7 +256,7 @@ def main():
                 atomic_bytes(NGINX, config, 0o644)
                 nginx_changed = True
                 nginx_reload()
-                check_app(port, revision)
+                wait_app(port, revision)
                 run("systemctl", "enable", unit)
                 new = {"current": release_id, "port": port, "previous": old["current"] if old else None}
                 atomic_bytes(STATE, (json.dumps(new) + "\n").encode(), 0o600)
@@ -265,7 +265,7 @@ def main():
                     atomic_bytes(NGINX, previous_nginx, 0o644)
                     nginx_reload()
                     if old:
-                        check_app(old["port"], old["current"].split("-")[0])
+                        wait_app(old["port"], old["current"].split("-")[0])
                     else:
                         run("curl", "-fsS", "--max-time", "7", "--resolve", f"{DOMAIN}:443:127.0.0.1",
                             f"https://{DOMAIN}/")
