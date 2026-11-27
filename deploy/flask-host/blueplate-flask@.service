@@ -1,0 +1,30 @@
+[Unit]
+Description=BluePlate Flask production slot %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=blueplate-flask
+Group=blueplate-flask
+WorkingDirectory=/srv/ust-paid-sites/blueplate/flask-slot-%i/app
+EnvironmentFile=/etc/blueplate-flask/app.env
+Environment=PYTHONPATH=/srv/ust-paid-sites/blueplate/flask-slot-%i/vendor
+Environment=PYTHONNOUSERSITE=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3.14 -m gunicorn --workers 1 --threads 4 --bind 127.0.0.1:%i --forwarded-allow-ips= web_app_example.flask_db_connector:app
+Restart=on-failure
+TimeoutStopSec=35
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+InaccessiblePaths=-/etc/blueplate-staging -/etc/ust-paid-sites -/etc/letsencrypt -/var/backups -/var/lib/blueplate-staging -/var/lib/amazon
+IPAddressDeny=169.254.169.254/32
+IPAddressDeny=fd00:ec2::254/128
+CPUWeight=40
+MemoryHigh=180M
+MemoryMax=250M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,34 +1,11 @@
-# Production deployment
+# BluePlate production deployment
 
-The [Deploy paid site](https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/actions/workflows/paid-site.yml) workflow runs on pushes to `main`. It skips deployment until a static site, a build script, or a reviewed migration pair is committed:
+Merges and pushes to `main` trigger [BluePlate Flask production](https://github.com/KaneD29/G3-BluePlate-Delivery-Intelligence/actions/workflows/paid-site.yml). The workflow checks the Flask app under `prototype/osm-synthetic-dashboard`, installs its locked Python dependencies, and packages its runtime on Linux x86-64. A separate deploy job delivers the archive through the existing project-scoped AWS role and Systems Manager command.
 
-- `deploy/site/index.html` and the assets for a static site.
-- `deploy/build.sh`, a Bash script that installs locked dependencies if needed, runs the project's tests and build, and writes the final static site to `deploy/site/`. It must exit with an error if a required check fails.
-- `deploy/migrations/0001_create_orders.sql` and `deploy/migrations/0001_create_orders.verify.sql`, or the next contiguous number for later schema changes. Migration-only pushes can run before a site is available.
+Production serves [blueplate.space](https://blueplate.space/) and its `www` hostname from the Flask service on the shared UST EC2. The runner tests the candidate on a private port before routing HTTPS to it. Failed activation restores the previous route and service. Each successful release retains the current and immediate previous Flask release. The original static release and its routing backup provide a rollback path for the first Flask release.
 
-For BluePlate, the Next.js build requires the committed `blueplate-dashboard/package.json`, matching `blueplate-dashboard/package-lock.json`, and `deploy/build.sh`. Detection checks these inputs before Node dependency caching. A missing app skips the app build, even if the build script remains. Existing migration pairs can still pass isolated validation and run through the guarded migration-only deployment. If neither a static site nor migration files exist, deployment skips. When the app is present but its lockfile or build script is missing, detection fails with the required filename. Restoring the app and its lockfile on `main` automatically enables the build again.
+The production app uses a schema-scoped RDS reader with verified TLS for `blueplate_dw`. The initial warehouse was verified with 274 current listings, 274 model venues, and 119 historical venues. The host checks the approved warehouse SQL and seed digests before activation. Changes to those files require a separately reviewed warehouse rollout with a backup and verification. The legacy migration pairs in `deploy/migrations/` belong to the original static dashboard's schema, `2026_3dsa_3_blueplate`.
 
-Include only files intended to be public in `deploy/site/`. Keep environment files, database files, credentials, and original datasets outside that directory. Use a backend deployment configuration if the project needs a server-side runtime or database connection.
+Public report submission remains gated by the Flask application configuration. Configure and test hostname-specific Turnstile and the required database write permissions before opening hosted report collection. See the [application deployment guide](prototype/osm-synthetic-dashboard/DEPLOYMENT.md).
 
-## MySQL migrations
-
-Use UTF-8 with LF line endings. Each numbered pair contains one additive `CREATE TABLE`, `ALTER TABLE … ADD`, or `CREATE INDEX` statement and one verification query. Verification must return exactly `1` and check the intended object through `information_schema` with `table_schema = DATABASE()`. For example:
-
-```sql
-SELECT EXISTS (SELECT 1 FROM information_schema.tables
-  WHERE table_schema = DATABASE() AND table_name = 'orders');
-```
-
-Review the exact committed pair before merging. Send the commit and migration filenames to the EC2 operator for independent approval of both file digests. GitHub tests the ordered pairs on an isolated MySQL 8.4 instance. Production uses a dedicated TLS account and runs only approved files against this project's RDS schema. Keep every applied pair intact in later releases. Keep warehouse loaders, seed scripts, imports, and ad hoc queries outside `deploy/migrations/`.
-
-The SQL stage skips when there are no files. Before each new migration, the EC2 runner saves a private backup of this schema. It records the migration as applied only after the verification query passes. If execution is interrupted or verification fails, an operator must reconcile the recorded pending migration before retrying. Reverting application code leaves applied schema changes in place.
-
-GitHub builds without AWS credentials. A separate job checks the archive, uploads it to private AWS storage using a short-lived role, and deploys through the project's fixed command on the shared EC2 host. The server checks the packaged identity and the site response before marking a release active. It restores the previous release on a failed activation and keeps the current and previous verified releases. Release archives expire after 30 days.
-
-Check the job summary in Actions for skipped runs, errors, and the deployment command ID. To retry after correcting the source, push the fix to `main` or run the workflow again from `main`. For a rerun of an existing run, choose **Re-run all jobs** so the build and deploy jobs use the same attempt number. For a rollback after a successful deploy, revert the application change on `main` or ask the EC2 operator to restore the previous verified release.
-
-## BluePlate live data
-
-The EC2 deployment serves the dashboard as a static Next.js export. Nginx forwards only `/data/blueplate.json` and `/data/orders.json` to the BluePlate systemd service. The service reconstructs the dashboard responses from ordered MySQL rows in `2026_3dsa_3_blueplate` using a host-bound, TLS-verified reader account. Data refreshes from RDS on demand with a 30-second server cache. The imported order records are synthetic. No upstream feed is configured.
-
-The existing workflow applies reviewed DDL in `deploy/migrations/`. Run `deploy/blueplate-data/import_blueplate.py` separately to initialize the two tables with the committed JSON snapshots. The service code and unit under `deploy/blueplate-data/` are host-managed and require a separate rollout when changed. Configure `/etc/blueplate-data/mysql.cnf` as root-only and load it through systemd credentials. Keep the previous Nginx configuration for rollback to the bundled snapshot.
+If a run fails, check its build or SSM summary. After addressing the failure, run the workflow from `main` or re-run all jobs to rebuild the archive with the correct attempt ID. The EC2 operator can find the private runner log in `/var/lib/blueplate-flask/deploy.log`. Host service and routing changes follow a separate, reviewed installation of the files under `deploy/flask-host/`.
