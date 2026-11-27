@@ -109,6 +109,7 @@ def main():
             "--shell", "/usr/sbin/nologin", "blueplate-flask")
     for path, mode in ((state, 0o700), (app_root / "flask-releases", 0o755), (app_root / "flask-staging", 0o700)):
         path.mkdir(mode=mode)
+        path.chmod(mode)
     install(config / "nginx-template.conf", template.encode(), 0o600)
     install(config / "warehouse-baseline.json", baseline, 0o600)
     install(runner, runner_code, 0o644)

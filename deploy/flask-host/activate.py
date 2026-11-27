@@ -206,6 +206,8 @@ def main():
             trusted_directory(path)
         require(shutil.disk_usage(ROOT).free > 512 * 1024 * 1024, "Insufficient release storage")
         verify_instance()
+        # The service account needs to traverse releases even when SSM has a restrictive umask.
+        os.umask(0o022)
         identity = {"format": 2, "project": "blueplate", "repository_id": "1445569871",
                     "revision": revision, "ref": "refs/heads/main", "run_id": run_id,
                     "run_attempt": run_attempt, "runtime": "cp314-linux-x86_64"}
@@ -243,6 +245,7 @@ def main():
             nginx_changed = False
             try:
                 pointer(slot, destination)
+                subprocess.run(["systemctl", "reset-failed", unit], check=False, capture_output=True, timeout=15)
                 run("systemctl", "restart", unit)
                 wait_app(port)
                 phase = "activation"
